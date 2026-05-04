@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Job Risk Is Uneven</title>
+  </head>
+  <body>
+    <main class="story-shell">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero__copy">
+          <p class="section-label">ECS 163 proposal prototype</p>
+          <h1 id="hero-title">AI risk is not evenly distributed across work.</h1>
+          <p>
+            Salary can suggest bargaining power, but it does not fully explain which jobs
+            appear exposed to automation. This prototype starts the story by comparing pay
+            with automation risk across industries, regions, and years.
+          </p>
+        </div>
+        <div class="hero__stat" aria-label="Dataset summary">
+          <span id="record-count">5,000</span>
+          <small>AI-related job postings, 2010-2025</small>
+        </div>
+      </section>
+
+      <section class="narrative-block">
+        <p class="section-label">Dataset</p>
+        <h2>A labor-market snapshot with uneven exposure.</h2>
+        <p>
+          The data contains job postings from 2010 through 2025 with salary, industry,
+          location, AI intensity, automation risk, and displacement-risk labels. The goal
+          is not to rank individual careers, but to show why AI impact is better understood
+          as a pattern across job context instead of a single high-pay versus low-pay divide.
+        </p>
+      </section>
+
+      <section class="demo-section" aria-labelledby="demo-title">
+        <div class="demo-intro">
+          <div>
+            <p class="section-label">Interactive demo</p>
+            <h2 id="demo-title">Look for high-risk work at every salary level.</h2>
+          </div>
+          <p>
+            Each point is a job posting. Filter by industry and scrub through years to see
+            how exposed roles appear across the salary range.
+          </p>
+        </div>
+
+        <div class="controls" aria-label="Chart controls">
+          <label>
+            Industry
+            <select id="industry-filter"></select>
+          </label>
+          <label id="year-control" class="year-control">
+            Year filter
+            <span id="year-value">All years</span>
+            <input id="year-slider" type="range" />
+          </label>
+          <button id="all-years-button" class="reset-button" type="button">Show all years</button>
+        </div>
+        <div id="legend" class="legend" aria-label="Industry color legend"></div>
+
+        <div class="chart-frame">
+          <div id="scatter-plot" class="scatter-plot" role="img" aria-label="Scatter plot of salary and automation risk"></div>
+          <div id="tooltip" class="tooltip" hidden></div>
+        </div>
+
+        <p id="chart-note" class="chart-note">
+          A horizontal spread of high-risk points would support the project thesis: higher
+          salaries do not automatically remove exposure to AI-driven automation.
+        </p>
+      </section>
+
+      <section class="future-plan">
+        <p class="section-label">Final project direction</p>
+        <h2>From demo to narrative visualization.</h2>
+        <p>
+          The final version will turn this first scatter plot into a stronger guided story:
+          an opening claim, annotated transitions, richer industry and regional comparisons,
+          and one advanced D3 visualization that makes uneven AI impact feel concrete.
+        </p>
+      </section>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
