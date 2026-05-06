@@ -1,22 +1,27 @@
 # ECS 163 Final Project Prototype
 
-This repository contains the first front-end prototype for an ECS 163 Data Visualization final project about uneven AI impact on jobs.
+This repository contains the first front-end prototype for an ECS 163 Data Visualization final project about competitive Pokémon strength.
 
-The current prototype is intentionally small: it is a data-story page with a hook, dataset context, one interactive D3 scatter plot, and a short future-plan section. It is not the final implementation yet.
+The current prototype is intentionally small: it is a React + D3 data-story page with a hook, a guided comparison, one interactive D3 force-directed network, and a short exploration prompt. It is not the final implementation yet.
 
 ## What The Prototype Shows
 
-The prototype uses `ai_impact_jobs_2010_2025.csv`, a 5,000-row dataset of job postings from 2010-2025. The implemented visualization compares:
+The prototype uses cleaned Pokémon competitive data from `public/data/processed/`. The main visualization shows:
 
-- x-axis: `salary_usd`
-- y-axis: `automation_risk_score`
-- color: `industry`
-- tooltip details: job title, industry, salary, automation risk, year, region, and country
-- interaction: industry dropdown and year slider
+- node: Pokémon
+- node size: usage percent
+- node color: primary type
+- edge: common teammate relationship
+- edge width/opacity: co-usage strength
+- interaction: hover tooltip, click-to-select highlighting, reset button, and detail panel
+
+React manages the page structure, loaded data, selected Pokémon, tooltip state, and detail panel. D3 handles CSV parsing, scales, axes, and the force-directed network layout.
 
 The narrative claim is:
 
-> AI risk is not evenly distributed. Salary alone does not determine whether a job is safe or exposed.
+> Competitive success emerges from synergy, not just raw stats.
+
+The proposal demo focuses on Incineroar: a Pokémon with moderate base stats but unusually strong team-network centrality.
 
 ## Install
 
@@ -56,8 +61,8 @@ npm run preview
 
 ## Planned For The Final Project
 
-- Strengthen the page into a complete narrative visualization rather than a standalone chart.
-- Add guided annotations and transitions that move from salary to industry, region, and displacement-risk patterns.
-- Design one advanced D3 visualization as the main feature of the final story.
-- Add more careful visual explanation of uncertainty, dataset limits, and what the risk scores should and should not imply.
+- Strengthen the page into a complete Martini Glass narrative visualization.
+- Add guided annotations and transitions that reveal raw stats, usage, and team synergy step by step.
+- Expand the advanced D3 network with brushing, linking, and carefully scoped supporting views.
+- Add clearer explanation of dataset limits, VGC 2022 context, and what usage data can and cannot prove.
 - Include final report notes, citations, and full execution instructions for grading.

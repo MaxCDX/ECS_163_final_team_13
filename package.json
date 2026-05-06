@@ -1,5 +1,5 @@
 {
-  "name": "ecs-163-ai-jobs-story-prototype",
+  "name": "ecs-163-pokemon-synergy-prototype",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,8 +9,10 @@
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {
+    "@vitejs/plugin-react": "^5.1.1",
     "d3": "^7.9.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
     "vite": "^6.3.4"
-  },
-  "devDependencies": {}
+  }
 }

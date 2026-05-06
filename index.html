@@ -3,74 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>What Really Makes a Pokemon Strong?</title>
+    <title>What Really Makes a Pokémon Strong?</title>
   </head>
   <body>
-    <main class="story-shell">
-      <section class="hero" aria-labelledby="hero-title">
-        <div>
-          <p class="section-label">ECS 163 proposal prototype</p>
-          <h1 id="hero-title">What Really Makes a Pokemon Strong?</h1>
-          <p>
-            Most people assume stronger Pokemon simply have higher stats. But
-            competitive data suggests something more complicated: strength often
-            comes from the teammates, moves, items, and abilities around a Pokemon.
-          </p>
-        </div>
-        <aside class="hero-card">
-          <span id="network-count">50</span>
-          <small>Pokemon in the proposal network</small>
-        </aside>
-      </section>
-
-      <section class="guided-section" aria-labelledby="guided-title">
-        <div class="section-copy">
-          <p class="section-label">Guided insight</p>
-          <h2 id="guided-title">High stats do not guarantee high usage.</h2>
-          <p>
-            Zacian is both powerful and popular. Zamazenta has similarly huge
-            base stats, yet far lower usage. Incineroar has moderate stats, but
-            becomes central because it connects to many successful teams.
-          </p>
-        </div>
-        <div id="comparison-view" class="comparison-view" aria-label="Stat total and usage comparison"></div>
-      </section>
-
-      <section class="network-section" aria-labelledby="network-title">
-        <div class="network-intro">
-          <div>
-            <p class="section-label">Main network</p>
-            <h2 id="network-title">Competitive success emerges from synergy.</h2>
-          </div>
-          <p>
-            Each node is a Pokemon. Larger nodes are used more often. Edges show
-            common teammates, and thicker edges mean stronger co-usage.
-          </p>
-        </div>
-
-        <div class="network-layout">
-          <div class="network-panel">
-            <div class="network-toolbar">
-              <button id="reset-selection" class="reset-button" type="button">Reset selection</button>
-              <span id="network-note">Click Incineroar to see why team context matters.</span>
-            </div>
-            <div id="network-graph" class="network-graph" role="img" aria-label="Force-directed Pokemon team synergy network"></div>
-            <div id="tooltip" class="tooltip" hidden></div>
-          </div>
-          <aside id="detail-panel" class="detail-panel" aria-live="polite"></aside>
-        </div>
-      </section>
-
-      <section class="exploration-prompt">
-        <p class="section-label">Exploration prompt</p>
-        <h2>Click around the ecosystem.</h2>
-        <p>
-          Look for Pokemon that are not statistical giants, but still sit near
-          the center of the team network. Those are the strongest evidence that
-          competitive value is built through synergy.
-        </p>
-      </section>
-    </main>
+    <div id="root"></div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
