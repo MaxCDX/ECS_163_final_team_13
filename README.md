@@ -58,6 +58,10 @@ Preview the build locally:
 ```bash
 npm run preview
 ```
+## Dataset
+- [Complete Competitive Pokémon Database (2022)](https://www.kaggle.com/datasets/giorgiocarbone/complete-competitive-pokmon-datasets-may-2022)
+
+- [Dataset of 32000 Pokemon Images & CSV, JSON](https://www.kaggle.com/datasets/divyanshusingh369/complete-pokemon-library-32k-images-and-csv)
 
 ## Planned For The Final Project
 
