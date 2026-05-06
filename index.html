@@ -3,81 +3,71 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Job Risk Is Uneven</title>
+    <title>What Really Makes a Pokemon Strong?</title>
   </head>
   <body>
     <main class="story-shell">
       <section class="hero" aria-labelledby="hero-title">
-        <div class="hero__copy">
+        <div>
           <p class="section-label">ECS 163 proposal prototype</p>
-          <h1 id="hero-title">AI risk is not evenly distributed across work.</h1>
+          <h1 id="hero-title">What Really Makes a Pokemon Strong?</h1>
           <p>
-            Salary can suggest bargaining power, but it does not fully explain which jobs
-            appear exposed to automation. This prototype starts the story by comparing pay
-            with automation risk across industries, regions, and years.
+            Most people assume stronger Pokemon simply have higher stats. But
+            competitive data suggests something more complicated: strength often
+            comes from the teammates, moves, items, and abilities around a Pokemon.
           </p>
         </div>
-        <div class="hero__stat" aria-label="Dataset summary">
-          <span id="record-count">5,000</span>
-          <small>AI-related job postings, 2010-2025</small>
+        <aside class="hero-card">
+          <span id="network-count">50</span>
+          <small>Pokemon in the proposal network</small>
+        </aside>
+      </section>
+
+      <section class="guided-section" aria-labelledby="guided-title">
+        <div class="section-copy">
+          <p class="section-label">Guided insight</p>
+          <h2 id="guided-title">High stats do not guarantee high usage.</h2>
+          <p>
+            Zacian is both powerful and popular. Zamazenta has similarly huge
+            base stats, yet far lower usage. Incineroar has moderate stats, but
+            becomes central because it connects to many successful teams.
+          </p>
         </div>
+        <div id="comparison-view" class="comparison-view" aria-label="Stat total and usage comparison"></div>
       </section>
 
-      <section class="narrative-block">
-        <p class="section-label">Dataset</p>
-        <h2>A labor-market snapshot with uneven exposure.</h2>
-        <p>
-          The data contains job postings from 2010 through 2025 with salary, industry,
-          location, AI intensity, automation risk, and displacement-risk labels. The goal
-          is not to rank individual careers, but to show why AI impact is better understood
-          as a pattern across job context instead of a single high-pay versus low-pay divide.
-        </p>
-      </section>
-
-      <section class="demo-section" aria-labelledby="demo-title">
-        <div class="demo-intro">
+      <section class="network-section" aria-labelledby="network-title">
+        <div class="network-intro">
           <div>
-            <p class="section-label">Interactive demo</p>
-            <h2 id="demo-title">Look for high-risk work at every salary level.</h2>
+            <p class="section-label">Main network</p>
+            <h2 id="network-title">Competitive success emerges from synergy.</h2>
           </div>
           <p>
-            Each point is a job posting. Filter by industry and scrub through years to see
-            how exposed roles appear across the salary range.
+            Each node is a Pokemon. Larger nodes are used more often. Edges show
+            common teammates, and thicker edges mean stronger co-usage.
           </p>
         </div>
 
-        <div class="controls" aria-label="Chart controls">
-          <label>
-            Industry
-            <select id="industry-filter"></select>
-          </label>
-          <label id="year-control" class="year-control">
-            Year filter
-            <span id="year-value">All years</span>
-            <input id="year-slider" type="range" />
-          </label>
-          <button id="all-years-button" class="reset-button" type="button">Show all years</button>
+        <div class="network-layout">
+          <div class="network-panel">
+            <div class="network-toolbar">
+              <button id="reset-selection" class="reset-button" type="button">Reset selection</button>
+              <span id="network-note">Click Incineroar to see why team context matters.</span>
+            </div>
+            <div id="network-graph" class="network-graph" role="img" aria-label="Force-directed Pokemon team synergy network"></div>
+            <div id="tooltip" class="tooltip" hidden></div>
+          </div>
+          <aside id="detail-panel" class="detail-panel" aria-live="polite"></aside>
         </div>
-        <div id="legend" class="legend" aria-label="Industry color legend"></div>
-
-        <div class="chart-frame">
-          <div id="scatter-plot" class="scatter-plot" role="img" aria-label="Scatter plot of salary and automation risk"></div>
-          <div id="tooltip" class="tooltip" hidden></div>
-        </div>
-
-        <p id="chart-note" class="chart-note">
-          A horizontal spread of high-risk points would support the project thesis: higher
-          salaries do not automatically remove exposure to AI-driven automation.
-        </p>
       </section>
 
-      <section class="future-plan">
-        <p class="section-label">Final project direction</p>
-        <h2>From demo to narrative visualization.</h2>
+      <section class="exploration-prompt">
+        <p class="section-label">Exploration prompt</p>
+        <h2>Click around the ecosystem.</h2>
         <p>
-          The final version will turn this first scatter plot into a stronger guided story:
-          an opening claim, annotated transitions, richer industry and regional comparisons,
-          and one advanced D3 visualization that makes uneven AI impact feel concrete.
+          Look for Pokemon that are not statistical giants, but still sit near
+          the center of the team network. Those are the strongest evidence that
+          competitive value is built through synergy.
         </p>
       </section>
     </main>
