@@ -449,6 +449,20 @@ function NetworkLegend() {
   );
 }
 
+function StoryCallouts({ items }) {
+  return (
+    <div className="story-callouts">
+      {items.map((item) => (
+        <article className="story-callout" key={item.title}>
+          <span>{item.label}</span>
+          <h3>{item.title}</h3>
+          <p>{item.body}</p>
+        </article>
+      ))}
+    </div>
+  );
+}
+
 function NetworkGraph({ nodes, links, imageLookup, selectedName, onSelect }) {
   const [containerRef, width] = useElementWidth();
   const selectedNameRef = useRef(selectedName);
@@ -798,6 +812,20 @@ export default function App() {
             Zacian is both powerful and popular. Zamazenta has similarly huge base stats, yet far lower usage. Incineroar
             has moderate stats, but becomes central because it connects to many successful teams.
           </p>
+          <StoryCallouts
+            items={[
+              {
+                label: "01",
+                title: "The assumption breaks",
+                body: "The scatterplot keeps the full usage context visible while the selected Pokemon gets a precise focus.",
+              },
+              {
+                label: "02",
+                title: "Incineroar is the useful exception",
+                body: "Its stat total is modest next to restricted legends, but its usage stays near the top of the format.",
+              },
+            ]}
+          />
         </div>
         <ComparisonChart pokemon={enrichedPokemon} selectedName={selectedName} onSelect={setSelectedName} />
       </section>
@@ -813,6 +841,20 @@ export default function App() {
             stronger co-usage.
           </p>
         </div>
+        <StoryCallouts
+          items={[
+            {
+              label: "03",
+              title: "Context explains the outlier",
+              body: "Selecting one node keeps the full team ecosystem on screen while revealing that Pokemon's strongest partners.",
+            },
+            {
+              label: "04",
+              title: "Strength is relational",
+              body: "Thick links and repeated partners show why usage can come from team fit, not only individual stats.",
+            },
+          ]}
+        />
 
         <div className="network-layout">
           <div className="network-panel">

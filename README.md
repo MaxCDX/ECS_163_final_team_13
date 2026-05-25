@@ -76,6 +76,7 @@ The project should stay focused on one argument: competitive strength is not onl
 - [x] Expand the comparison chart into a fuller stats-vs-usage context view.
 - [x] Link the comparison view, network, and detail panel through the same selected Pokemon.
 - [x] Add legends for node size, node color, edge thickness, and selection highlighting.
+- [x] Add short annotations that guide the viewer through the main story beats.
 - [x] Add an interactive force-directed team synergy network.
 - [x] Support hover tooltips, click selection, linked highlighting, and reset behavior.
 - [x] Add a selected Pokemon detail panel with stats, usage, rank, teammates, moves, item, and ability.
@@ -86,8 +87,8 @@ The project should stay focused on one argument: competitive strength is not onl
 
 ### Still Needed
 
-- [ ] Add short annotations that guide the viewer through the main story beats.
 - [ ] Add a compact selected-Pokemon ranking summary for stats, usage, and network centrality.
+- [ ] Add an easier Pokemon picker with name search and ranked suggestions for usage, stat total, and synergy.
 - [ ] Add a methodology and data limits section explaining VGC 2022, usage as a proxy, and co-usage limits.
 - [ ] Improve responsive layout and label readability for the final presentation.
 - [ ] Update the final report and README after the app is finished.
