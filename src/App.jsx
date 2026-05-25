@@ -45,6 +45,10 @@ const TYPE_COLORS = new Map([
 const formatPercent = d3.format(".0f");
 const formatNumber = d3.format(",");
 const formatWeighted = d3.format(",.0f");
+const formatCorrelation = d3.format(".2f");
+
+// Report/story metric calculated from data/processed/pokemon_clean.csv.
+const STORY_STATS_USAGE_CORRELATION = 0.194;
 
 function typeColor(type) {
   return TYPE_COLORS.get(type) || "#8b949e";
@@ -127,7 +131,7 @@ function useElementWidth() {
   return [ref, width];
 }
 
-function buildNetworkSubset(pokemon, edges) {
+function addNetworkMetrics(pokemon, edges) {
   const metrics = new Map(pokemon.map((d) => [d.Name, { degree: 0, weightedDegree: 0 }]));
 
   for (const edge of edges) {
@@ -140,15 +144,17 @@ function buildNetworkSubset(pokemon, edges) {
     target.weightedDegree += edge.coUsagePercent;
   }
 
-  const enriched = pokemon.map((d) => {
+  return pokemon.map((d) => {
     const metric = metrics.get(d.Name) || { degree: 0, weightedDegree: 0 };
     return { ...d, degree: metric.degree, weightedDegree: metric.weightedDegree };
   });
+}
 
-  const byName = new Map(enriched.map((d) => [d.Name, d]));
+function buildNetworkSubset(pokemon, edges) {
+  const byName = new Map(pokemon.map((d) => [d.Name, d]));
   const selected = new Set(CASE_STUDIES.filter((name) => byName.has(name)));
 
-  const ranked = enriched
+  const ranked = pokemon
     .filter((d) => !d.missingBaseStats && (d.hasUsageData || d.weightedDegree > 0))
     .sort((a, b) => d3.descending(a.weightedDegree + usageValue(a) * 65, b.weightedDegree + usageValue(b) * 65));
 
@@ -211,6 +217,26 @@ function getTopTeammates(edges, name) {
     .slice(0, 5);
 }
 
+function pearsonCorrelation(data, getX, getY) {
+  if (data.length < 2) return 0;
+
+  const xMean = d3.mean(data, getX);
+  const yMean = d3.mean(data, getY);
+  let numerator = 0;
+  let xTotal = 0;
+  let yTotal = 0;
+
+  for (const d of data) {
+    const xDelta = getX(d) - xMean;
+    const yDelta = getY(d) - yMean;
+    numerator += xDelta * yDelta;
+    xTotal += xDelta * xDelta;
+    yTotal += yDelta * yDelta;
+  }
+
+  return numerator / Math.sqrt(xTotal * yTotal);
+}
+
 function usePokemonData() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -245,15 +271,18 @@ function usePokemonData() {
   return { data, error };
 }
 
-function ComparisonChart({ pokemon }) {
+function ComparisonChart({ pokemon, selectedName, onSelect }) {
   const [containerRef, width] = useElementWidth();
 
   useEffect(() => {
     if (!width || !pokemon.length) return undefined;
 
-    const data = COMPARISON_NAMES.map((name) => pokemon.find((d) => d.Name === name)).filter(Boolean);
-    const height = 330;
-    const margin = { top: 28, right: 26, bottom: 56, left: 64 };
+    const data = pokemon.filter((d) => d.hasUsageData && Number.isFinite(d.Total) && usageValue(d) > 0);
+    const selected = data.find((d) => d.Name === selectedName);
+    const labelNames = new Set([...COMPARISON_NAMES, selectedName].filter(Boolean));
+    const labelled = data.filter((d) => labelNames.has(d.Name));
+    const height = 380;
+    const margin = { top: 42, right: 28, bottom: 58, left: 64 };
     const root = d3.select(containerRef.current);
 
     root.selectAll("*").remove();
@@ -264,8 +293,16 @@ function ComparisonChart({ pokemon }) {
       .attr("width", "100%")
       .attr("height", height);
 
-    const x = d3.scaleLinear().domain([450, 740]).range([margin.left, width - margin.right]);
-    const y = d3.scaleLinear().domain([0, 70]).range([height - margin.bottom, margin.top]);
+    const x = d3
+      .scaleLinear()
+      .domain(d3.extent(data, (d) => d.Total))
+      .nice()
+      .range([margin.left, width - margin.right]);
+    const y = d3
+      .scaleLinear()
+      .domain([0, d3.max(data, usageValue) || 1])
+      .nice()
+      .range([height - margin.bottom, margin.top]);
 
     svg
       .append("g")
@@ -297,38 +334,135 @@ function ComparisonChart({ pokemon }) {
       .text("Usage percent");
 
     svg
-      .append("line")
-      .attr("class", "comparison-guide")
-      .attr("x1", x(530))
-      .attr("x2", x(720))
-      .attr("y1", y(59))
-      .attr("y2", y(0));
+      .append("text")
+      .attr("class", "chart-note")
+      .attr("x", margin.left)
+      .attr("y", 22)
+      .text(`All usage-tracked Pokemon, stat/use correlation: ${formatCorrelation(STORY_STATS_USAGE_CORRELATION)}`);
+
+    if (selected) {
+      svg
+        .append("line")
+        .attr("class", "selection-guide")
+        .attr("x1", x(selected.Total))
+        .attr("x2", x(selected.Total))
+        .attr("y1", y(0))
+        .attr("y2", y(usageValue(selected)));
+
+      svg
+        .append("line")
+        .attr("class", "selection-guide")
+        .attr("x1", margin.left)
+        .attr("x2", x(selected.Total))
+        .attr("y1", y(usageValue(selected)))
+        .attr("y2", y(usageValue(selected)));
+    }
 
     svg
       .append("g")
       .selectAll("circle")
       .data(data)
       .join("circle")
-      .attr("class", "comparison-dot")
+      .attr("class", (d) =>
+        [
+          "comparison-dot",
+          COMPARISON_NAMES.includes(d.Name) ? "is-case-study" : "",
+          d.Name === selectedName ? "is-selected" : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
+      )
       .attr("cx", (d) => x(d.Total))
       .attr("cy", (d) => y(usageValue(d)))
-      .attr("r", (d) => (d.Name === "Incineroar" ? 11 : 9))
-      .attr("fill", (d) => typeColor(d.Type1));
+      .attr("r", (d) => {
+        if (d.Name === selectedName) return 8.5;
+        return COMPARISON_NAMES.includes(d.Name) ? 6.8 : 4.2;
+      })
+      .attr("fill", (d) => typeColor(d.Type1))
+      .on("click", (event, d) => {
+        event.stopPropagation();
+        onSelect(d.Name === selectedName ? null : d.Name);
+      })
+      .append("title")
+      .text((d) => `${d.Name}: ${formatNumber(d.Total)} total stats, ${formatPercent(usageValue(d))}% usage`);
 
     svg
       .append("g")
       .selectAll("text")
-      .data(data)
+      .data(labelled)
       .join("text")
-      .attr("class", "comparison-label")
+      .attr("class", (d) => `comparison-label${d.Name === selectedName ? " is-selected" : ""}`)
       .attr("x", (d) => x(d.Total) + 12)
       .attr("y", (d) => y(usageValue(d)) - 10)
       .text((d) => compactName(d.Name));
 
-    return () => root.selectAll("*").remove();
-  }, [containerRef, pokemon, width]);
+    svg.on("click", () => onSelect(null));
 
-  return <div ref={containerRef} className="comparison-view" aria-label="Stat total and usage comparison" />;
+    return () => root.selectAll("*").remove();
+  }, [containerRef, onSelect, pokemon, selectedName, width]);
+
+  return (
+    <div className="comparison-stack">
+      <div ref={containerRef} className="comparison-view" aria-label="Stat total and usage comparison" />
+      <ComparisonLegend />
+    </div>
+  );
+}
+
+function ComparisonLegend() {
+  return (
+    <div className="encoding-legend" aria-label="Comparison chart legend">
+      <span>
+        <i className="legend-dot" style={{ "--legend-color": "#d85f3f" }} />
+        Primary type color
+      </span>
+      <span>
+        <i className="legend-dot legend-dot-large" style={{ "--legend-color": "#f2b56b" }} />
+        Selected Pokemon
+      </span>
+      <span>
+        <i className="legend-line legend-line-dashed" />
+        Selected value guides
+      </span>
+    </div>
+  );
+}
+
+function NetworkLegend() {
+  return (
+    <div className="encoding-legend network-legend" aria-label="Network legend">
+      <span>
+        <i className="legend-node-size" />
+        Larger node = more usage
+      </span>
+      <span>
+        <i className="legend-line legend-line-strong" />
+        Thicker edge = stronger co-usage
+      </span>
+      <span>
+        <i className="legend-dot" style={{ "--legend-color": "#4387c7" }} />
+        Node color = primary type
+      </span>
+      <span>
+        <i className="legend-ring" />
+        Gold outline = selected
+      </span>
+    </div>
+  );
+}
+
+function StoryCallouts({ items }) {
+  return (
+    <div className="story-callouts">
+      {items.map((item) => (
+        <article className="story-callout" key={item.title}>
+          <span>{item.label}</span>
+          <h3>{item.title}</h3>
+          <p>{item.body}</p>
+        </article>
+      ))}
+    </div>
+  );
 }
 
 function NetworkGraph({ nodes, links, imageLookup, selectedName, onSelect }) {
@@ -470,20 +604,21 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, onSelect }) {
   }, [containerRef, imageLookup, links, nodes, onSelect, width]);
 
   useEffect(() => {
-    const connected = connectedNames(selectedName, links);
+    const selectedInGraph = selectedName && nodes.some((d) => d.Name === selectedName);
+    const connected = connectedNames(selectedInGraph ? selectedName : null, links);
     const root = d3.select(containerRef.current);
 
     root
       .selectAll(".link")
-      .classed("is-muted", (d) => selectedName && d.sourceName !== selectedName && d.targetName !== selectedName)
-      .classed("is-active", (d) => selectedName && (d.sourceName === selectedName || d.targetName === selectedName));
+      .classed("is-muted", (d) => selectedInGraph && d.sourceName !== selectedName && d.targetName !== selectedName)
+      .classed("is-active", (d) => selectedInGraph && (d.sourceName === selectedName || d.targetName === selectedName));
 
     root
       .selectAll(".node")
-      .classed("is-muted", (d) => selectedName && !connected.has(d.Name))
+      .classed("is-muted", (d) => selectedInGraph && !connected.has(d.Name))
       .classed("is-selected", (d) => d.Name === selectedName)
-      .classed("is-neighbor", (d) => selectedName && d.Name !== selectedName && connected.has(d.Name));
-  }, [containerRef, links, selectedName]);
+      .classed("is-neighbor", (d) => selectedInGraph && d.Name !== selectedName && connected.has(d.Name));
+  }, [containerRef, links, nodes, selectedName]);
 
   return (
     <div
@@ -618,14 +753,19 @@ export default function App() {
   const { data, error } = usePokemonData();
   const [selectedName, setSelectedName] = useState("Incineroar");
 
-  const subset = useMemo(() => {
-    if (!data) return { nodes: [], links: [] };
-    return buildNetworkSubset(data.pokemon, data.edges);
+  const enrichedPokemon = useMemo(() => {
+    if (!data) return [];
+    return addNetworkMetrics(data.pokemon, data.edges);
   }, [data]);
 
+  const subset = useMemo(() => {
+    if (!data) return { nodes: [], links: [] };
+    return buildNetworkSubset(enrichedPokemon, data.edges);
+  }, [data, enrichedPokemon]);
+
   const selectedPokemon = useMemo(
-    () => subset.nodes.find((d) => d.Name === selectedName) || null,
-    [selectedName, subset.nodes],
+    () => enrichedPokemon.find((d) => d.Name === selectedName) || null,
+    [enrichedPokemon, selectedName],
   );
 
   if (error) {
@@ -644,7 +784,8 @@ export default function App() {
     );
   }
 
-  const networkNote = selectedName
+  const selectedInNetwork = selectedName && subset.nodes.some((d) => d.Name === selectedName);
+  const networkNote = selectedInNetwork
     ? `${selectedName} is selected. Its brightest links show common teammates.`
     : "Click a Pokémon to lock its team relationships.";
 
@@ -673,8 +814,22 @@ export default function App() {
             Zacian is both powerful and popular. Zamazenta has similarly huge base stats, yet far lower usage. Incineroar
             has moderate stats, but becomes central because it connects to many successful teams.
           </p>
+          <StoryCallouts
+            items={[
+              {
+                label: "01",
+                title: "The assumption breaks",
+                body: "The scatterplot keeps the full usage context visible while the selected Pokemon gets a precise focus.",
+              },
+              {
+                label: "02",
+                title: "Incineroar is the useful exception",
+                body: "Its stat total is modest next to restricted legends, but its usage stays near the top of the format.",
+              },
+            ]}
+          />
         </div>
-        <ComparisonChart pokemon={data.pokemon} />
+        <ComparisonChart pokemon={enrichedPokemon} selectedName={selectedName} onSelect={setSelectedName} />
       </section>
 
       <section className="network-section" aria-labelledby="network-title">
@@ -688,6 +843,20 @@ export default function App() {
             stronger co-usage.
           </p>
         </div>
+        <StoryCallouts
+          items={[
+            {
+              label: "03",
+              title: "Context explains the outlier",
+              body: "Selecting one node keeps the full team ecosystem on screen while revealing that Pokemon's strongest partners.",
+            },
+            {
+              label: "04",
+              title: "Strength is relational",
+              body: "Thick links and repeated partners show why usage can come from team fit, not only individual stats.",
+            },
+          ]}
+        />
 
         <div className="network-layout">
           <div className="network-panel">
@@ -697,6 +866,7 @@ export default function App() {
               </button>
               <span id="network-note">{networkNote}</span>
             </div>
+            <NetworkLegend />
             <NetworkGraph
               nodes={subset.nodes}
               links={subset.links}
