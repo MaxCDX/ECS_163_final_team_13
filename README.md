@@ -73,6 +73,8 @@ The project should stay focused on one argument: competitive strength is not onl
 - [x] Load Pokemon, teammate edges, build usage, and image lookup data.
 - [x] Show a guided intro around the main claim.
 - [x] Add a small stats-vs-usage comparison for Zacian, Zamazenta, and Incineroar.
+- [x] Expand the comparison chart into a fuller stats-vs-usage context view.
+- [x] Link the comparison view, network, and detail panel through the same selected Pokemon.
 - [x] Add an interactive force-directed team synergy network.
 - [x] Support hover tooltips, click selection, linked highlighting, and reset behavior.
 - [x] Add a selected Pokemon detail panel with stats, usage, rank, teammates, moves, item, and ability.
@@ -83,8 +85,6 @@ The project should stay focused on one argument: competitive strength is not onl
 
 ### Still Needed
 
-- [ ] Expand the comparison chart into a fuller stats-vs-usage context view.
-- [ ] Link the comparison view, network, and detail panel through the same selected Pokemon.
 - [ ] Add legends for node size, node color, edge thickness, and selection highlighting.
 - [ ] Add short annotations that guide the viewer through the main story beats.
 - [ ] Add a compact selected-Pokemon ranking summary for stats, usage, and network centrality.

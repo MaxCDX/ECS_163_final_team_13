@@ -322,21 +322,55 @@ p {
   font-weight: 800;
 }
 
-.comparison-guide {
-  stroke: rgba(242, 181, 107, 0.45);
-  stroke-width: 2;
-  stroke-dasharray: 5 6;
+.chart-note {
+  fill: #d7d1c5;
+  font-size: 0.8rem;
+  font-weight: 750;
 }
 
 .comparison-dot {
+  cursor: pointer;
+  opacity: 0.42;
+  stroke: rgba(255, 249, 239, 0.42);
+  stroke-width: 1;
+  transition:
+    opacity 160ms ease,
+    stroke 160ms ease,
+    stroke-width 160ms ease;
+}
+
+.comparison-dot:hover,
+.comparison-dot.is-case-study {
+  opacity: 0.9;
   stroke: #fff9ef;
-  stroke-width: 1.6;
+  stroke-width: 1.4;
+}
+
+.comparison-dot.is-selected {
+  opacity: 1;
+  stroke: #f2b56b;
+  stroke-width: 3;
 }
 
 .comparison-label {
   fill: #fff9ef;
   font-size: 0.82rem;
   font-weight: 820;
+  paint-order: stroke;
+  pointer-events: none;
+  stroke: #12171d;
+  stroke-width: 4px;
+}
+
+.comparison-label.is-selected {
+  fill: #f2b56b;
+}
+
+.selection-guide {
+  pointer-events: none;
+  stroke: rgba(242, 181, 107, 0.44);
+  stroke-dasharray: 4 5;
+  stroke-width: 1.5;
 }
 
 .link {
