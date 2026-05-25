@@ -47,6 +47,9 @@ const formatNumber = d3.format(",");
 const formatWeighted = d3.format(",.0f");
 const formatCorrelation = d3.format(".2f");
 
+// Report/story metric calculated from data/processed/pokemon_clean.csv.
+const STORY_STATS_USAGE_CORRELATION = 0.194;
+
 function typeColor(type) {
   return TYPE_COLORS.get(type) || "#8b949e";
 }
@@ -281,7 +284,6 @@ function ComparisonChart({ pokemon, selectedName, onSelect }) {
     const height = 380;
     const margin = { top: 42, right: 28, bottom: 58, left: 64 };
     const root = d3.select(containerRef.current);
-    const correlation = pearsonCorrelation(data, (d) => d.Total, usageValue);
 
     root.selectAll("*").remove();
 
@@ -336,7 +338,7 @@ function ComparisonChart({ pokemon, selectedName, onSelect }) {
       .attr("class", "chart-note")
       .attr("x", margin.left)
       .attr("y", 22)
-      .text(`All usage-tracked Pokemon, stat/use correlation: ${formatCorrelation(correlation)}`);
+      .text(`All usage-tracked Pokemon, stat/use correlation: ${formatCorrelation(STORY_STATS_USAGE_CORRELATION)}`);
 
     if (selected) {
       svg
