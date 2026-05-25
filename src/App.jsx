@@ -399,7 +399,54 @@ function ComparisonChart({ pokemon, selectedName, onSelect }) {
     return () => root.selectAll("*").remove();
   }, [containerRef, onSelect, pokemon, selectedName, width]);
 
-  return <div ref={containerRef} className="comparison-view" aria-label="Stat total and usage comparison" />;
+  return (
+    <div className="comparison-stack">
+      <div ref={containerRef} className="comparison-view" aria-label="Stat total and usage comparison" />
+      <ComparisonLegend />
+    </div>
+  );
+}
+
+function ComparisonLegend() {
+  return (
+    <div className="encoding-legend" aria-label="Comparison chart legend">
+      <span>
+        <i className="legend-dot" style={{ "--legend-color": "#d85f3f" }} />
+        Primary type color
+      </span>
+      <span>
+        <i className="legend-dot legend-dot-large" style={{ "--legend-color": "#f2b56b" }} />
+        Selected Pokemon
+      </span>
+      <span>
+        <i className="legend-line legend-line-dashed" />
+        Selected value guides
+      </span>
+    </div>
+  );
+}
+
+function NetworkLegend() {
+  return (
+    <div className="encoding-legend network-legend" aria-label="Network legend">
+      <span>
+        <i className="legend-node-size" />
+        Larger node = more usage
+      </span>
+      <span>
+        <i className="legend-line legend-line-strong" />
+        Thicker edge = stronger co-usage
+      </span>
+      <span>
+        <i className="legend-dot" style={{ "--legend-color": "#4387c7" }} />
+        Node color = primary type
+      </span>
+      <span>
+        <i className="legend-ring" />
+        Gold outline = selected
+      </span>
+    </div>
+  );
 }
 
 function NetworkGraph({ nodes, links, imageLookup, selectedName, onSelect }) {
@@ -775,6 +822,7 @@ export default function App() {
               </button>
               <span id="network-note">{networkNote}</span>
             </div>
+            <NetworkLegend />
             <NetworkGraph
               nodes={subset.nodes}
               links={subset.links}
