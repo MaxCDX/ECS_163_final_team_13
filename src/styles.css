@@ -706,7 +706,13 @@ p {
   cursor: pointer;
 }
 
+.node-hit {
+  fill: rgba(255, 255, 255, 0.001);
+  pointer-events: all;
+}
+
 .node {
+  pointer-events: none;
   stroke: rgba(255, 255, 255, 0.88);
   transition:
     opacity 160ms ease,
