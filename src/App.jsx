@@ -306,7 +306,7 @@ function usePokemonData() {
   return { data, error };
 }
 
-function ComparisonChart({ pokemon, selectedName, onSelect }) {
+function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrush }) {
   const [containerRef, width] = useElementWidth();
 
   useEffect(() => {
@@ -314,6 +314,7 @@ function ComparisonChart({ pokemon, selectedName, onSelect }) {
 
     const data = pokemon.filter((d) => d.hasUsageData && Number.isFinite(d.Total) && usageValue(d) > 0);
     const selected = data.find((d) => d.Name === selectedName);
+    const brushedSet = new Set(brushedNames);
     const labelNames = new Set([...COMPARISON_NAMES, selectedName].filter(Boolean));
     const labelled = data.filter((d) => labelNames.has(d.Name));
     const trend = linearRegression(data, (d) => d.Total, usageValue);
@@ -405,6 +406,31 @@ function ComparisonChart({ pokemon, selectedName, onSelect }) {
         .attr("y2", y(usageValue(selected)));
     }
 
+    const brush = d3
+      .brush()
+      .extent([
+        [margin.left, margin.top],
+        [width - margin.right, height - margin.bottom],
+      ])
+      .on("end", (event) => {
+        if (!event.selection) {
+          onBrush([]);
+          return;
+        }
+
+        const [[x0, y0], [x1, y1]] = event.selection;
+        const names = data
+          .filter((d) => {
+            const cx = x(d.Total);
+            const cy = y(usageValue(d));
+            return x0 <= cx && cx <= x1 && y0 <= cy && cy <= y1;
+          })
+          .map((d) => d.Name);
+        onBrush(names);
+      });
+
+    svg.append("g").attr("class", "scatter-brush").call(brush);
+
     svg
       .append("g")
       .selectAll("circle")
@@ -415,6 +441,7 @@ function ComparisonChart({ pokemon, selectedName, onSelect }) {
           "comparison-dot",
           COMPARISON_NAMES.includes(d.Name) ? "is-case-study" : "",
           d.Name === selectedName ? "is-selected" : "",
+          brushedSet.has(d.Name) ? "is-brushed" : "",
         ]
           .filter(Boolean)
           .join(" "),
@@ -446,7 +473,7 @@ function ComparisonChart({ pokemon, selectedName, onSelect }) {
     svg.on("click", () => onSelect(null));
 
     return () => root.selectAll("*").remove();
-  }, [containerRef, onSelect, pokemon, selectedName, width]);
+  }, [brushedNames, containerRef, onBrush, onSelect, pokemon, selectedName, width]);
 
   return (
     <div className="comparison-stack">
@@ -544,7 +571,7 @@ function HeroRoster({ pokemon, imageLookup }) {
   );
 }
 
-function NetworkGraph({ nodes, links, imageLookup, selectedName, onSelect }) {
+function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, onSelect }) {
   const [containerRef, width] = useElementWidth();
   const selectedNameRef = useRef(selectedName);
   const simulationRef = useRef(null);
@@ -699,6 +726,8 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, onSelect }) {
 
   useEffect(() => {
     const selectedInGraph = selectedName && nodes.some((d) => d.Name === selectedName);
+    const brushedSet = new Set(brushedNames);
+    const hasBrush = brushedSet.size > 0;
     const connected = connectedNames(selectedInGraph ? selectedName : null, links);
     const strongestNeighborLabels = new Set();
     if (selectedInGraph) {
@@ -712,14 +741,25 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, onSelect }) {
 
     root
       .selectAll(".link")
-      .classed("is-muted", (d) => selectedInGraph && d.sourceName !== selectedName && d.targetName !== selectedName)
-      .classed("is-active", (d) => selectedInGraph && (d.sourceName === selectedName || d.targetName === selectedName));
+      .classed(
+        "is-muted",
+        (d) =>
+          (selectedInGraph && d.sourceName !== selectedName && d.targetName !== selectedName) ||
+          (!selectedInGraph && hasBrush && !brushedSet.has(d.sourceName) && !brushedSet.has(d.targetName)),
+      )
+      .classed(
+        "is-active",
+        (d) =>
+          (selectedInGraph && (d.sourceName === selectedName || d.targetName === selectedName)) ||
+          (!selectedInGraph && hasBrush && (brushedSet.has(d.sourceName) || brushedSet.has(d.targetName))),
+      );
 
     root
       .selectAll(".node-group")
-      .classed("is-muted", (d) => selectedInGraph && !connected.has(d.Name))
+      .classed("is-muted", (d) => (selectedInGraph && !connected.has(d.Name)) || (!selectedInGraph && hasBrush && !brushedSet.has(d.Name)))
       .classed("is-selected", (d) => d.Name === selectedName)
-      .classed("is-neighbor", (d) => selectedInGraph && d.Name !== selectedName && connected.has(d.Name));
+      .classed("is-neighbor", (d) => selectedInGraph && d.Name !== selectedName && connected.has(d.Name))
+      .classed("is-brushed", (d) => !selectedInGraph && hasBrush && brushedSet.has(d.Name));
 
     root
       .selectAll(".node-label")
@@ -727,9 +767,10 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, onSelect }) {
         "is-visible",
         (d) =>
           CASE_STUDIES.includes(d.Name) ||
-          (selectedInGraph && (d.Name === selectedName || strongestNeighborLabels.has(d.Name))),
+          (selectedInGraph && (d.Name === selectedName || strongestNeighborLabels.has(d.Name))) ||
+          (!selectedInGraph && brushedSet.size <= 12 && brushedSet.has(d.Name)),
       );
-  }, [containerRef, links, nodes, selectedName]);
+  }, [brushedNames, containerRef, links, nodes, selectedName]);
 
   return (
     <div
@@ -880,6 +921,7 @@ function TeammateList({ rows }) {
 export default function App() {
   const { data, error } = usePokemonData();
   const [selectedName, setSelectedName] = useState("Incineroar");
+  const [brushedNames, setBrushedNames] = useState([]);
 
   const enrichedPokemon = useMemo(() => {
     if (!data) return [];
@@ -895,6 +937,16 @@ export default function App() {
     () => enrichedPokemon.find((d) => d.Name === selectedName) || null,
     [enrichedPokemon, selectedName],
   );
+
+  function handleSelectName(name) {
+    setSelectedName(name);
+    setBrushedNames([]);
+  }
+
+  function handleBrushNames(names) {
+    setBrushedNames(names);
+    if (names.length) setSelectedName(null);
+  }
 
   if (error) {
     return (
@@ -913,7 +965,9 @@ export default function App() {
   }
 
   const selectedInNetwork = selectedName && subset.nodes.some((d) => d.Name === selectedName);
-  const networkNote = selectedInNetwork
+  const networkNote = brushedNames.length
+    ? `${brushedNames.length} Pokémon brushed in the scatterplot. Matching nodes are highlighted in the network.`
+    : selectedInNetwork
     ? `${selectedName} is selected. Its brightest links show common teammates.`
     : "Click a Pokémon to lock its team relationships.";
 
@@ -960,7 +1014,13 @@ export default function App() {
             ]}
           />
         </div>
-        <ComparisonChart pokemon={enrichedPokemon} selectedName={selectedName} onSelect={setSelectedName} />
+        <ComparisonChart
+          pokemon={enrichedPokemon}
+          selectedName={selectedName}
+          brushedNames={brushedNames}
+          onSelect={handleSelectName}
+          onBrush={handleBrushNames}
+        />
       </section>
 
       <section className="network-section" aria-labelledby="network-title">
@@ -992,7 +1052,14 @@ export default function App() {
         <div className="network-layout">
           <div className="network-panel">
             <div className="network-toolbar">
-              <button className="reset-button" type="button" onClick={() => setSelectedName(null)}>
+              <button
+                className="reset-button"
+                type="button"
+                onClick={() => {
+                  setSelectedName(null);
+                  setBrushedNames([]);
+                }}
+              >
                 Reset selection
               </button>
               <span id="network-note">{networkNote}</span>
@@ -1003,7 +1070,8 @@ export default function App() {
               links={subset.links}
               imageLookup={data.imageLookup}
               selectedName={selectedName}
-              onSelect={setSelectedName}
+              brushedNames={brushedNames}
+              onSelect={handleSelectName}
             />
           </div>
           <DetailPanel pokemon={selectedPokemon} builds={data.builds} edges={data.edges} imageLookup={data.imageLookup} />

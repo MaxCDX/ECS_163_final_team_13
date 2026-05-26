@@ -643,6 +643,22 @@ p {
   stroke-width: 3;
 }
 
+.comparison-dot.is-brushed {
+  opacity: 1;
+  stroke: #f7f3ea;
+  stroke-width: 2.4;
+}
+
+.scatter-brush .selection {
+  fill: rgba(226, 95, 77, 0.16);
+  stroke: rgba(226, 95, 77, 0.78);
+  stroke-width: 1.4;
+}
+
+.scatter-brush .overlay {
+  cursor: crosshair;
+}
+
 .comparison-label {
   fill: #f7f3ea;
   font-size: 0.82rem;
@@ -711,6 +727,15 @@ p {
 .node-group.is-neighbor .node {
   stroke: #f7f3ea;
   stroke-width: 2.4;
+}
+
+.node-group.is-brushed .node {
+  stroke: #f7f3ea;
+  stroke-width: 2.8;
+}
+
+.node-group.is-brushed .node-sprite {
+  opacity: 1;
 }
 
 .node-group.is-muted .node {
