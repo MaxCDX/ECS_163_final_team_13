@@ -95,7 +95,7 @@ def correlation_insight():
     fig.patch.set_facecolor(BG)
     ax.set_facecolor(BG)
     labels = ["Stats → Usage", "Synergy → Usage"]
-    values = [0.194, 0.929]
+    values = [0.194, 0.903]
     bars = ax.barh(labels, values, color=[MUTED, ACCENT], height=0.5)
     ax.set_xlim(0, 1)
     for bar, value in zip(bars, values):
