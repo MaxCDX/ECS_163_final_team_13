@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 
 const DATA_PATHS = {
@@ -623,6 +623,7 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
       .on("mousemove", (event, d) => setTooltipFromEvent(event, d))
       .on("mouseleave", () => setTooltip(null))
       .on("click", (event, d) => {
+        event.preventDefault();
         event.stopPropagation();
         onSelect(d.Name === selectedNameRef.current ? null : d.Name);
       });
@@ -640,7 +641,13 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
       .attr("href", (d) => imageForPokemon(d.Name, imageLookup))
       .attr("width", (d) => Math.max(20, radius(usageValue(d)) * 1.7))
       .attr("height", (d) => Math.max(20, radius(usageValue(d)) * 1.7))
+      .attr("pointer-events", "none")
       .attr("preserveAspectRatio", "xMidYMid meet");
+
+    const nodeHit = nodeLayer
+      .append("circle")
+      .attr("class", "node-hit")
+      .attr("r", (d) => Math.max(24, radius(usageValue(d)) * 1.65));
 
     const label = svg
       .append("g")
@@ -678,6 +685,7 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
           .attr("x2", (d) => d.target.x)
           .attr("y2", (d) => d.target.y);
 
+        nodeHit.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
         node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
         nodeSprite
           .attr("x", (d) => d.x - Math.max(20, radius(usageValue(d)) * 1.7) / 2)
@@ -938,15 +946,15 @@ export default function App() {
     [enrichedPokemon, selectedName],
   );
 
-  function handleSelectName(name) {
+  const handleSelectName = useCallback((name) => {
     setSelectedName(name);
     setBrushedNames([]);
-  }
+  }, []);
 
-  function handleBrushNames(names) {
+  const handleBrushNames = useCallback((names) => {
     setBrushedNames(names);
     if (names.length) setSelectedName(null);
-  }
+  }, []);
 
   if (error) {
     return (
