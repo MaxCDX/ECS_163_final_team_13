@@ -293,6 +293,8 @@ function pickerMetric(pokemon, mode) {
   if (mode === "stats") return formatNumber(pokemon.Total);
   if (mode === "synergy") return formatWeighted(pokemon.weightedDegree);
   return `${formatPercent(usageValue(pokemon))}%`;
+}
+
 function linearRegression(data, getX, getY) {
   if (data.length < 2) return null;
 
@@ -673,7 +675,6 @@ function PokemonPicker({ pokemon, imageLookup, selectedPokemon, selectedName, on
   );
 }
 
-function NetworkGraph({ nodes, links, imageLookup, selectedName, onSelect }) {
 function HeroRoster({ pokemon, imageLookup }) {
   const featured = CASE_STUDIES.map((name) => pokemon.find((d) => d.Name === name)).filter(Boolean).slice(0, 6);
 
