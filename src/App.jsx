@@ -63,6 +63,8 @@ const formatCorrelation = d3.format(".2f");
 
 // Report/story metric calculated from data/processed/pokemon_clean.csv.
 const STORY_STATS_USAGE_CORRELATION = 0.194;
+const STORY_CONNECTIVITY_USAGE_CORRELATION = 0.903;
+const INCINEROAR_REVEAL_NAME = "Incineroar";
 
 function typeColor(type) {
   return TYPE_COLORS.get(type) || "#8b949e";
@@ -569,6 +571,23 @@ function NetworkLegend() {
   );
 }
 
+function NetworkRevealCallout({ selectedPokemon }) {
+  const isIncineroar = selectedPokemon?.Name === INCINEROAR_REVEAL_NAME;
+
+  if (!isIncineroar) return null;
+
+  return (
+    <aside className="network-reveal-callout" aria-label="Incineroar narrative reveal">
+      <span>Contradiction case</span>
+      <p>
+        Incineroar has 530 base stats, but {formatPercent(usageValue(selectedPokemon))}% usage and one of the strongest
+        teammate footprints in the format.
+      </p>
+      <strong>Its links reveal support value: Intimidate, Fake Out, Parting Shot, and repeated team fit.</strong>
+    </aside>
+  );
+}
+
 function StoryCallouts({ items }) {
   return (
     <div className="story-callouts">
@@ -580,6 +599,56 @@ function StoryCallouts({ items }) {
         </article>
       ))}
     </div>
+  );
+}
+
+function ConnectivityBridge() {
+  const metrics = [
+    {
+      label: "Total stats vs usage",
+      value: STORY_STATS_USAGE_CORRELATION,
+      display: "0.19",
+      strength: "Weak relationship",
+      body: "Raw power is part of the story, but it does not explain usage on its own.",
+      tone: "weak",
+    },
+    {
+      label: "Team connectivity degree vs usage",
+      value: STORY_CONNECTIVITY_USAGE_CORRELATION,
+      display: "0.903",
+      strength: "Strong relationship",
+      body: "Pokémon with more team connections tend to appear in usage much more consistently.",
+      tone: "strong",
+    },
+  ];
+
+  return (
+    <section className="connectivity-bridge" aria-labelledby="connectivity-bridge-title">
+      <div className="bridge-copy">
+        <p className="section-label">Why move to the network?</p>
+        <h2 id="connectivity-bridge-title">Usage follows team connection more closely than raw stats.</h2>
+        <p>
+          If raw stats do not explain usage very well, the next question is relational: which Pokémon keep appearing
+          with strong teammates?
+        </p>
+      </div>
+
+      <div className="bridge-metrics" aria-label="Correlation comparison">
+        {metrics.map((metric) => (
+          <article className={`bridge-metric is-${metric.tone}`} key={metric.label}>
+            <div className="bridge-metric-header">
+              <span>{metric.label}</span>
+              <strong>r = {metric.display}</strong>
+            </div>
+            <div className="bridge-meter" aria-hidden="true">
+              <span className="bridge-meter-fill" style={{ "--metric-width": `${metric.value * 100}%` }} />
+            </div>
+            <h3>{metric.strength}</h3>
+            <p>{metric.body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -862,14 +931,20 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
     const hasBrush = brushedSet.size > 0;
     const connected = connectedNames(selectedInGraph ? selectedName : null, links);
     const strongestNeighborLabels = new Set();
+    const strongestLinkKeys = new Set();
     if (selectedInGraph) {
       links
         .filter((d) => d.sourceName === selectedName || d.targetName === selectedName)
         .sort((a, b) => d3.descending(a.coUsagePercent, b.coUsagePercent))
         .slice(0, 8)
-        .forEach((d) => strongestNeighborLabels.add(d.sourceName === selectedName ? d.targetName : d.sourceName));
+        .forEach((d, index) => {
+          const neighbor = d.sourceName === selectedName ? d.targetName : d.sourceName;
+          strongestNeighborLabels.add(neighbor);
+          if (index < 5) strongestLinkKeys.add(`${d.sourceName}|${d.targetName}`);
+        });
     }
     const root = d3.select(containerRef.current);
+    const edgeWidth = d3.scaleLinear().domain(d3.extent(links, (d) => d.coUsagePercent)).range([0.8, 4.5]);
 
     root
       .selectAll(".link")
@@ -884,7 +959,16 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
         (d) =>
           (selectedInGraph && (d.sourceName === selectedName || d.targetName === selectedName)) ||
           (!selectedInGraph && hasBrush && (brushedSet.has(d.sourceName) || brushedSet.has(d.targetName))),
-      );
+      )
+      .classed("is-key-link", (d) => selectedInGraph && strongestLinkKeys.has(`${d.sourceName}|${d.targetName}`))
+      .style("stroke-width", (d) => {
+        const baseWidth = edgeWidth(d.coUsagePercent);
+        if (selectedInGraph && strongestLinkKeys.has(`${d.sourceName}|${d.targetName}`)) return baseWidth + 2.2;
+        if (selectedInGraph && (d.sourceName === selectedName || d.targetName === selectedName)) return baseWidth + 1.2;
+        return baseWidth;
+      });
+
+    root.selectAll(".link.is-active").raise();
 
     root
       .selectAll(".node-group")
@@ -901,7 +985,8 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
           CASE_STUDIES.includes(d.Name) ||
           (selectedInGraph && (d.Name === selectedName || strongestNeighborLabels.has(d.Name))) ||
           (!selectedInGraph && brushedSet.size <= 12 && brushedSet.has(d.Name)),
-      );
+      )
+      .classed("is-reveal-label", (d) => selectedInGraph && (d.Name === selectedName || strongestNeighborLabels.has(d.Name)));
   }, [brushedNames, containerRef, links, nodes, selectedName]);
 
   return (
@@ -968,6 +1053,7 @@ function DetailPanel({ pokemon, builds, edges, imageLookup }) {
   const items = getBuildRows(builds, pokemon.Name, "item").slice(0, 1);
   const abilities = getBuildRows(builds, pokemon.Name, "ability").slice(0, 1);
   const teammates = getTopTeammates(edges, pokemon.Name);
+  const isIncineroar = pokemon.Name === INCINEROAR_REVEAL_NAME;
 
   return (
     <aside className="detail-panel" aria-live="polite">
@@ -1005,6 +1091,16 @@ function DetailPanel({ pokemon, builds, edges, imageLookup }) {
           <dd>{formatWeighted(pokemon.weightedDegree)}</dd>
         </div>
       </dl>
+
+      {isIncineroar ? (
+        <section className="role-evidence">
+          <h4>Competitive role evidence</h4>
+          <p>
+            Incineroar succeeds as a support pivot. Intimidate softens attackers, Fake Out buys positioning, and Parting
+            Shot resets matchups so stronger teammates can keep pressure.
+          </p>
+        </section>
+      ) : null}
 
       <div className="detail-list-grid">
         <DetailList title="Common moves" rows={moves} />
@@ -1100,7 +1196,9 @@ export default function App() {
   const networkNote = brushedNames.length
     ? `${brushedNames.length} Pokémon brushed in the scatterplot. Matching nodes are highlighted in the network.`
     : selectedInNetwork
-    ? `${selectedName} is selected. Its brightest links show common teammates.`
+    ? selectedName === INCINEROAR_REVEAL_NAME
+      ? "Incineroar is the authored reveal: moderate stats, high usage, and bright support links."
+      : `${selectedName} is selected. Its brightest links show common teammates.`
     : "Click a Pokémon to lock its team relationships.";
 
   return (
@@ -1155,6 +1253,8 @@ export default function App() {
         />
       </section>
 
+      <ConnectivityBridge />
+
       <PokemonPicker
         pokemon={enrichedPokemon}
         imageLookup={data.imageLookup}
@@ -1178,19 +1278,20 @@ export default function App() {
           items={[
               {
                 label: "03",
-                title: "Partners explain the outlier",
-                body: "Selecting one node keeps the full team ecosystem on screen while revealing that Pokémon's strongest partners.",
+                title: "Incineroar breaks the simple stats story",
+                body: "The default selection starts with the contradiction case: moderate stats, high usage, and unusually visible team connections.",
               },
               {
                 label: "04",
                 title: "Usage is relational",
-                body: "Thick links and repeated partners show where competitive value comes from team fit, not only individual stats.",
+                body: "Thick links and repeated partners show where support roles create value through team fit, not only individual stats.",
               },
           ]}
         />
 
         <div className="network-layout">
           <div className="network-panel">
+            <NetworkRevealCallout selectedPokemon={selectedPokemon} />
             <div className="network-toolbar">
               <button
                 className="reset-button"
