@@ -21,6 +21,11 @@ const CASE_STUDIES = [
 
 const COMPARISON_NAMES = ["Zacian Crowned Sword", "Zamazenta Crowned Shield", "Incineroar"];
 
+const PICKER_MODES = [
+  { id: "usage", label: "Usage", metricLabel: "Usage" },
+  { id: "stats", label: "Stats", metricLabel: "Base stats" },
+  { id: "synergy", label: "Synergy", metricLabel: "Synergy weight" },
+];
 const LOCAL_IMAGE_PATHS = new Map([
   ["Incineroar", "/assets/pokemon/incineroar.png"],
   ["Zacian Crowned Sword", "/assets/pokemon/zacian-crowned-sword.png"],
@@ -250,6 +255,44 @@ function pearsonCorrelation(data, getX, getY) {
   return numerator / Math.sqrt(xTotal * yTotal);
 }
 
+function rankedPickerOptions(pokemon, query, mode) {
+  const searchText = query.trim().toLowerCase();
+
+  if (searchText) {
+    return pokemon
+      .filter((d) => d.Name.toLowerCase().includes(searchText))
+      .sort((a, b) => {
+        const aStarts = a.Name.toLowerCase().startsWith(searchText);
+        const bStarts = b.Name.toLowerCase().startsWith(searchText);
+        return d3.descending(aStarts, bStarts) || d3.ascending(a.Name, b.Name);
+      })
+      .slice(0, 8);
+  }
+
+  if (mode === "stats") {
+    return pokemon
+      .filter((d) => Number.isFinite(d.Total))
+      .sort((a, b) => d3.descending(a.Total, b.Total))
+      .slice(0, 8);
+  }
+
+  if (mode === "synergy") {
+    return pokemon
+      .filter((d) => d.weightedDegree > 0)
+      .sort((a, b) => d3.descending(a.weightedDegree, b.weightedDegree))
+      .slice(0, 8);
+  }
+
+  return pokemon
+    .filter((d) => d.hasUsageData && usageValue(d) > 0)
+    .sort((a, b) => d3.descending(usageValue(a), usageValue(b)))
+    .slice(0, 8);
+}
+
+function pickerMetric(pokemon, mode) {
+  if (mode === "stats") return formatNumber(pokemon.Total);
+  if (mode === "synergy") return formatWeighted(pokemon.weightedDegree);
+  return `${formatPercent(usageValue(pokemon))}%`;
 function linearRegression(data, getX, getY) {
   if (data.length < 2) return null;
 
@@ -543,6 +586,94 @@ function StoryCallouts({ items }) {
   );
 }
 
+function PokemonPicker({ pokemon, imageLookup, selectedPokemon, selectedName, onSelect }) {
+  const [query, setQuery] = useState("");
+  const [mode, setMode] = useState("usage");
+  const modeInfo = PICKER_MODES.find((item) => item.id === mode) || PICKER_MODES[0];
+  const options = useMemo(() => rankedPickerOptions(pokemon, query, mode), [mode, pokemon, query]);
+
+  return (
+    <section className="pokemon-picker-section" aria-labelledby="pokemon-picker-title">
+      <div className="picker-copy">
+        <p className="section-label">Pick a focus</p>
+        <h2 id="pokemon-picker-title">Choose a Pokémon to examine.</h2>
+        <p>
+          Search directly, or use the ranked shortcuts to test whether usage, raw stats, and team synergy point to the
+          same names.
+        </p>
+      </div>
+
+      <div className="pokemon-picker">
+        <div className="picker-current">
+          {selectedPokemon ? (
+            <img src={imageLookup.get(selectedPokemon.Name) || ""} alt="" />
+          ) : (
+            <div className="picker-image-placeholder" />
+          )}
+          <div>
+            <span>Current focus</span>
+            <strong>{selectedPokemon?.Name || "None selected"}</strong>
+            <small>{selectedPokemon ? typeLabel(selectedPokemon) : "Choose a search result or ranked option"}</small>
+          </div>
+        </div>
+
+        <label className="picker-search">
+          <span>Search by name</span>
+          <input
+            type="search"
+            value={query}
+            placeholder="Try Incineroar, Kyogre, Mewtwo..."
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+
+        <div className="picker-mode-row" aria-label="Rank suggestions by">
+          {PICKER_MODES.map((item) => (
+            <button
+              className={item.id === mode ? "is-active" : ""}
+              key={item.id}
+              type="button"
+              onClick={() => {
+                setMode(item.id);
+                setQuery("");
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="picker-results" aria-label={query ? "Search results" : `${modeInfo.label} ranked suggestions`}>
+          {options.length ? (
+            options.map((item, index) => (
+              <button
+                className={item.Name === selectedName ? "is-selected" : ""}
+                key={item.Name}
+                type="button"
+                onClick={() => onSelect(item.Name)}
+              >
+                <span className="picker-rank">{query ? "Result" : `#${index + 1}`}</span>
+                <img src={imageLookup.get(item.Name) || ""} alt="" />
+                <span className="picker-name">
+                  <strong>{item.Name}</strong>
+                  <small>{typeLabel(item)}</small>
+                </span>
+                <span className="picker-metric">
+                  <strong>{pickerMetric(item, mode)}</strong>
+                  <small>{modeInfo.metricLabel}</small>
+                </span>
+              </button>
+            ))
+          ) : (
+            <p className="picker-empty">No Pokémon match that search.</p>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function NetworkGraph({ nodes, links, imageLookup, selectedName, onSelect }) {
 function HeroRoster({ pokemon, imageLookup }) {
   const featured = CASE_STUDIES.map((name) => pokemon.find((d) => d.Name === name)).filter(Boolean).slice(0, 6);
 
@@ -1030,6 +1161,14 @@ export default function App() {
           onBrush={handleBrushNames}
         />
       </section>
+
+      <PokemonPicker
+        pokemon={enrichedPokemon}
+        imageLookup={data.imageLookup}
+        selectedPokemon={selectedPokemon}
+        selectedName={selectedName}
+        onSelect={setSelectedName}
+      />
 
       <section className="network-section" aria-labelledby="network-title">
         <div className="network-intro">
