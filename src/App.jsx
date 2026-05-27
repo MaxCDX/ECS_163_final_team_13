@@ -1108,11 +1108,11 @@ export default function App() {
       <section className="hero" aria-labelledby="hero-title">
         <div>
           <p className="section-label">Team 13 · competitive Pokémon data story</p>
-          <h1 id="hero-title">Strength is a team property.</h1>
-          <p className="data-kicker">VGC usage data + teammate co-usage network + moves, items, and abilities</p>
+          <h1 id="hero-title">Raw power matters. Team fit matters too.</h1>
+          <p className="data-kicker">VGC stats, usage, teammate networks, roles, moves, items, and abilities</p>
           <p>
-            Base stats explain part of competitive value. Usage data points to a quieter pattern: the best Pokémon fit
-            cleanly into many successful team structures.
+            Base stats explain part of competitive value. This story asks what else separates powerful Pokémon from
+            Pokémon that keep showing up on winning teams.
           </p>
           <div className="hero-facts" aria-label="Dataset summary">
             <span>{formatNumber(enrichedPokemon.length)} Pokémon</span>
