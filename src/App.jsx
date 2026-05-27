@@ -257,35 +257,30 @@ function pearsonCorrelation(data, getX, getY) {
 
 function rankedPickerOptions(pokemon, query, mode) {
   const searchText = query.trim().toLowerCase();
+  const hasSearch = searchText.length > 0;
+  const matchingPokemon = hasSearch ? pokemon.filter((d) => d.Name.toLowerCase().includes(searchText)) : pokemon;
 
-  if (searchText) {
-    return pokemon
-      .filter((d) => d.Name.toLowerCase().includes(searchText))
-      .sort((a, b) => {
-        const aStarts = a.Name.toLowerCase().startsWith(searchText);
-        const bStarts = b.Name.toLowerCase().startsWith(searchText);
-        return d3.descending(aStarts, bStarts) || d3.ascending(a.Name, b.Name);
-      })
-      .slice(0, 8);
-  }
+  const searchTieBreak = (a, b) => {
+    if (!hasSearch) return d3.ascending(a.Name, b.Name);
+    const aStarts = a.Name.toLowerCase().startsWith(searchText);
+    const bStarts = b.Name.toLowerCase().startsWith(searchText);
+    return d3.descending(aStarts, bStarts) || d3.ascending(a.Name, b.Name);
+  };
 
   if (mode === "stats") {
-    return pokemon
-      .filter((d) => Number.isFinite(d.Total))
-      .sort((a, b) => d3.descending(a.Total, b.Total))
+    return (hasSearch ? matchingPokemon : matchingPokemon.filter((d) => Number.isFinite(d.Total)))
+      .sort((a, b) => d3.descending(a.Total, b.Total) || searchTieBreak(a, b))
       .slice(0, 8);
   }
 
   if (mode === "synergy") {
-    return pokemon
-      .filter((d) => d.weightedDegree > 0)
-      .sort((a, b) => d3.descending(a.weightedDegree, b.weightedDegree))
+    return (hasSearch ? matchingPokemon : matchingPokemon.filter((d) => d.weightedDegree > 0))
+      .sort((a, b) => d3.descending(a.weightedDegree, b.weightedDegree) || searchTieBreak(a, b))
       .slice(0, 8);
   }
 
-  return pokemon
-    .filter((d) => d.hasUsageData && usageValue(d) > 0)
-    .sort((a, b) => d3.descending(usageValue(a), usageValue(b)))
+  return (hasSearch ? matchingPokemon : matchingPokemon.filter((d) => d.hasUsageData && usageValue(d) > 0))
+    .sort((a, b) => d3.descending(usageValue(a), usageValue(b)) || searchTieBreak(a, b))
     .slice(0, 8);
 }
 
@@ -635,10 +630,7 @@ function PokemonPicker({ pokemon, imageLookup, selectedPokemon, selectedName, on
               className={item.id === mode ? "is-active" : ""}
               key={item.id}
               type="button"
-              onClick={() => {
-                setMode(item.id);
-                setQuery("");
-              }}
+              onClick={() => setMode(item.id)}
             >
               {item.label}
             </button>
