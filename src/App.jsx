@@ -93,6 +93,40 @@ const STORY_STEPS = [
     targetId: "exploration-title",
   },
 ];
+const ROLE_NOTES = new Map([
+  [
+    "Incineroar",
+    "Support pivot: Intimidate, Fake Out, and Parting Shot create value by buying turns and resetting board position.",
+  ],
+  [
+    "Zacian Crowned Sword",
+    "Restricted attacker: high stats and direct pressure make it one of the cases where raw power and usage align.",
+  ],
+  [
+    "Zamazenta Crowned Shield",
+    "Defensive restricted: huge stats do not automatically translate into repeated team demand in this format.",
+  ],
+  [
+    "Mewtwo",
+    "Raw attacker: strong individual stats are less convincing when the build and teammate footprint are not as central.",
+  ],
+  [
+    "Kyogre",
+    "Weather attacker: rain pressure becomes more meaningful when teammates help protect, reposition, and exploit it.",
+  ],
+  [
+    "Grimmsnarl",
+    "Disruption support: screens and status tools help teammates survive long enough to execute a plan.",
+  ],
+  [
+    "Amoonguss",
+    "Redirection support: Spore and Rage Powder-style utility can matter more than raw stat total.",
+  ],
+  [
+    "Rillaboom",
+    "Terrain support: Fake Out pressure and Grassy Terrain make it valuable as part of repeated team structures.",
+  ],
+]);
 
 function typeColor(type) {
   return TYPE_COLORS.get(type) || "#8b949e";
@@ -263,6 +297,26 @@ function getTopTeammates(edges, name) {
     }))
     .sort((a, b) => d3.descending(a.percent, b.percent))
     .slice(0, 5);
+}
+
+function roleSummary(pokemon) {
+  return (
+    ROLE_NOTES.get(pokemon.Name) ||
+    "Role evidence combines build choices and teammate links so this selection can be read as part of a team pattern."
+  );
+}
+
+function buildEvidenceRows({ moves, items, abilities, teammates }) {
+  return [
+    ...abilities.slice(0, 1).map((row) => ({ label: row.name, value: row.usagePercent, kind: "Ability" })),
+    ...items.slice(0, 1).map((row) => ({ label: row.name, value: row.usagePercent, kind: "Item" })),
+    ...moves.slice(0, 3).map((row) => ({ label: row.name, value: row.usagePercent, kind: "Move" })),
+    ...teammates.slice(0, 3).map((row) => ({ label: row.name, value: row.percent, kind: "Partner" })),
+  ];
+}
+
+function shortEvidenceLabel(label) {
+  return label.length > 18 ? `${label.slice(0, 16)}...` : label;
 }
 
 function pearsonCorrelation(data, getX, getY) {
@@ -1116,7 +1170,7 @@ function DetailPanel({ pokemon, builds, edges, imageLookup }) {
   const items = getBuildRows(builds, pokemon.Name, "item").slice(0, 1);
   const abilities = getBuildRows(builds, pokemon.Name, "ability").slice(0, 1);
   const teammates = getTopTeammates(edges, pokemon.Name);
-  const isIncineroar = pokemon.Name === INCINEROAR_REVEAL_NAME;
+  const evidenceRows = buildEvidenceRows({ moves, items, abilities, teammates });
 
   return (
     <aside className="detail-panel" aria-live="polite">
@@ -1155,56 +1209,101 @@ function DetailPanel({ pokemon, builds, edges, imageLookup }) {
         </div>
       </dl>
 
-      {isIncineroar ? (
-        <section className="role-evidence">
-          <h4>Competitive role evidence</h4>
-          <p>
-            Incineroar succeeds as a support pivot. Intimidate softens attackers, Fake Out buys positioning, and Parting
-            Shot resets matchups so stronger teammates can keep pressure.
-          </p>
-        </section>
-      ) : null}
+      <section className="role-evidence">
+        <h4>Competitive role evidence</h4>
+        <p>{roleSummary(pokemon)}</p>
+      </section>
 
-      <div className="detail-list-grid">
-        <DetailList title="Common moves" rows={moves} />
-        <DetailList title="Top item" rows={items} />
-        <DetailList title="Top ability" rows={abilities} />
-        <TeammateList rows={teammates} />
-      </div>
+      <EvidenceBarChart rows={evidenceRows} />
     </aside>
   );
 }
 
-function DetailList({ title, rows }) {
-  if (!rows.length) return null;
-  return (
-    <section className="detail-list">
-      <h4>{title}</h4>
-      <ul>
-        {rows.map((row) => (
-          <li key={`${row.category}-${row.name}`}>
-            <span>{row.name}</span>
-            <strong>{formatPercent(row.usagePercent)}%</strong>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
+function EvidenceBarChart({ rows }) {
+  const [containerRef, width] = useElementWidth();
 
-function TeammateList({ rows }) {
+  useEffect(() => {
+    if (!width || !rows.length) return undefined;
+
+    const rowHeight = 28;
+    const margin = { top: 10, right: 42, bottom: 8, left: 78 };
+    const height = margin.top + margin.bottom + rows.length * rowHeight;
+    const root = d3.select(containerRef.current);
+    root.selectAll("*").remove();
+
+    const svg = root
+      .append("svg")
+      .attr("viewBox", `0 0 ${width} ${height}`)
+      .attr("width", "100%")
+      .attr("height", height);
+
+    const x = d3
+      .scaleLinear()
+      .domain([0, d3.max(rows, (d) => d.value) || 1])
+      .nice()
+      .range([margin.left, width - margin.right]);
+    const y = d3
+      .scaleBand()
+      .domain(rows.map((d) => d.label))
+      .range([margin.top, height - margin.bottom])
+      .padding(0.26);
+    const kindColor = d3
+      .scaleOrdinal()
+      .domain(["Ability", "Item", "Move", "Partner"])
+      .range(["#f2b56b", "#d282aa", "#6aaeb2", "#e25f4d"]);
+
+    const row = svg.append("g").selectAll("g").data(rows).join("g").attr("transform", (d) => `translate(0,${y(d.label)})`);
+
+    row
+      .append("text")
+      .attr("class", "evidence-kind")
+      .attr("x", 0)
+      .attr("y", y.bandwidth() / 2 + 4)
+      .text((d) => d.kind);
+
+    row
+      .append("rect")
+      .attr("class", "evidence-track")
+      .attr("x", margin.left)
+      .attr("width", width - margin.left - margin.right)
+      .attr("height", y.bandwidth());
+
+    row
+      .append("rect")
+      .attr("class", "evidence-bar")
+      .attr("x", margin.left)
+      .attr("width", 0)
+      .attr("height", y.bandwidth())
+      .attr("fill", (d) => kindColor(d.kind))
+      .transition()
+      .duration(520)
+      .attr("width", (d) => Math.max(2, x(d.value) - margin.left));
+
+    row
+      .append("text")
+      .attr("class", "evidence-label")
+      .attr("x", margin.left + 7)
+      .attr("y", y.bandwidth() / 2 + 4)
+      .text((d) => shortEvidenceLabel(d.label))
+      .append("title")
+      .text((d) => d.label);
+
+    row
+      .append("text")
+      .attr("class", "evidence-value")
+      .attr("x", width - 2)
+      .attr("y", y.bandwidth() / 2 + 4)
+      .attr("text-anchor", "end")
+      .text((d) => `${formatPercent(d.value)}%`);
+
+    return () => root.selectAll("*").remove();
+  }, [containerRef, rows, width]);
+
   if (!rows.length) return null;
   return (
-    <section className="detail-list">
-      <h4>Common teammates</h4>
-      <ul>
-        {rows.map((row) => (
-          <li key={row.name}>
-            <span>{row.name}</span>
-            <strong>{formatPercent(row.percent)}%</strong>
-          </li>
-        ))}
-      </ul>
+    <section className="evidence-chart-section">
+      <h4>Build and teammate signals</h4>
+      <div ref={containerRef} className="evidence-chart" aria-label="Build and teammate evidence chart" />
     </section>
   );
 }
