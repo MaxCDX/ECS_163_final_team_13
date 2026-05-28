@@ -65,6 +65,34 @@ const formatCorrelation = d3.format(".2f");
 const STORY_STATS_USAGE_CORRELATION = 0.194;
 const STORY_CONNECTIVITY_USAGE_CORRELATION = 0.903;
 const INCINEROAR_REVEAL_NAME = "Incineroar";
+const STORY_STEPS = [
+  {
+    id: "assumption",
+    label: "Assumption",
+    title: "Raw power looks like the answer.",
+    targetId: "hero-title",
+  },
+  {
+    id: "contradiction",
+    label: "Contradiction",
+    title: "High stats do not guarantee usage.",
+    targetId: "guided-title",
+    selectedName: "Zamazenta Crowned Shield",
+  },
+  {
+    id: "reveal",
+    label: "Network reveal",
+    title: "Team context explains the gap.",
+    targetId: "network-title",
+    selectedName: INCINEROAR_REVEAL_NAME,
+  },
+  {
+    id: "explore",
+    label: "Explore",
+    title: "Test the pattern yourself.",
+    targetId: "exploration-title",
+  },
+];
 
 function typeColor(type) {
   return TYPE_COLORS.get(type) || "#8b949e";
@@ -599,6 +627,25 @@ function StoryCallouts({ items }) {
         </article>
       ))}
     </div>
+  );
+}
+
+function StoryStepper({ activeStep, onStep }) {
+  return (
+    <nav className="story-stepper" aria-label="Guided story stages">
+      {STORY_STEPS.map((step, index) => (
+        <button
+          className={step.id === activeStep ? "is-active" : ""}
+          key={step.id}
+          type="button"
+          onClick={() => onStep(step)}
+        >
+          <span>{String(index + 1).padStart(2, "0")}</span>
+          <strong>{step.label}</strong>
+          <small>{step.title}</small>
+        </button>
+      ))}
+    </nav>
   );
 }
 
@@ -1156,6 +1203,7 @@ export default function App() {
   const { data, error } = usePokemonData();
   const [selectedName, setSelectedName] = useState("Incineroar");
   const [brushedNames, setBrushedNames] = useState([]);
+  const [activeStep, setActiveStep] = useState("reveal");
 
   const enrichedPokemon = useMemo(() => {
     if (!data) return [];
@@ -1176,6 +1224,7 @@ export default function App() {
     setSelectedName(name);
     setBrushedNames([]);
     if (options.scrollToNetwork) {
+      setActiveStep("reveal");
       window.requestAnimationFrame(() => {
         document.getElementById("network-title")?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
@@ -1185,6 +1234,15 @@ export default function App() {
   const handleBrushNames = useCallback((names) => {
     setBrushedNames(names);
     if (names.length) setSelectedName(null);
+  }, []);
+
+  const handleStoryStep = useCallback((step) => {
+    setActiveStep(step.id);
+    setSelectedName(step.selectedName || null);
+    setBrushedNames([]);
+    window.requestAnimationFrame(() => {
+      document.getElementById(step.targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }, []);
 
   if (error) {
@@ -1237,6 +1295,8 @@ export default function App() {
         />
       </section>
 
+      <StoryStepper activeStep={activeStep} onStep={handleStoryStep} />
+
       <section className="guided-section" aria-labelledby="guided-title">
         <div className="section-copy">
           <p className="section-label">Stat total vs. usage</p>
@@ -1270,14 +1330,6 @@ export default function App() {
       </section>
 
       <ConnectivityBridge />
-
-      <PokemonPicker
-        pokemon={enrichedPokemon}
-        imageLookup={data.imageLookup}
-        selectedPokemon={selectedPokemon}
-        selectedName={selectedName}
-        onSelect={handleSelectName}
-      />
 
       <section className="network-section" aria-labelledby="network-title">
         <div className="network-intro">
@@ -1335,13 +1387,20 @@ export default function App() {
         </div>
       </section>
 
-      <section className="exploration-prompt">
+      <section className="exploration-prompt" aria-labelledby="exploration-title">
         <p className="section-label">Reader task</p>
-        <h2>Find the high-value connectors.</h2>
+        <h2 id="exploration-title">Find the high-value connectors.</h2>
         <p>
           Look for Pokémon that are not statistical giants, but still sit near the center of the team network. Those are
           the strongest evidence that competitive value is built through synergy.
         </p>
+        <PokemonPicker
+          pokemon={enrichedPokemon}
+          imageLookup={data.imageLookup}
+          selectedPokemon={selectedPokemon}
+          selectedName={selectedName}
+          onSelect={(name) => handleSelectName(name, { scrollToNetwork: true })}
+        />
       </section>
     </main>
   );

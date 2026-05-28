@@ -265,6 +265,71 @@ p {
   padding: 82px 0;
 }
 
+.story-stepper {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin: -1px 0 22px;
+  border: 1px solid rgba(242, 244, 241, 0.12);
+  border-radius: 8px;
+  background: rgba(242, 244, 241, 0.12);
+  overflow: hidden;
+  backdrop-filter: blur(18px);
+}
+
+.story-stepper button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3px 10px;
+  min-height: 74px;
+  border: 0;
+  padding: 13px 14px;
+  background: rgba(16, 19, 22, 0.92);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.story-stepper button:hover,
+.story-stepper button:focus-visible,
+.story-stepper button.is-active {
+  background: rgba(226, 95, 77, 0.16);
+}
+
+.story-stepper button:focus-visible {
+  outline: 2px solid #f2b56b;
+  outline-offset: -2px;
+}
+
+.story-stepper span {
+  grid-row: 1 / span 2;
+  color: #e25f4d;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.story-stepper strong {
+  overflow-wrap: anywhere;
+  color: #f7f3ea;
+  font-size: 0.88rem;
+  line-height: 1.15;
+}
+
+.story-stepper small {
+  color: #9da8a5;
+  font-size: 0.74rem;
+  font-weight: 720;
+  line-height: 1.25;
+}
+
+.story-stepper button.is-active small {
+  color: #d8ded9;
+}
+
 .guided-section {
   display: grid;
   grid-template-columns: minmax(280px, 0.72fr) minmax(420px, 1fr);
@@ -425,6 +490,10 @@ p {
   border: 1px solid rgba(244, 240, 232, 0.13);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.035);
+}
+
+.exploration-prompt .pokemon-picker-section {
+  margin: 32px 0 0;
 }
 
 .picker-copy p:last-child {
@@ -1243,6 +1312,11 @@ p {
     gap: 30px;
   }
 
+  .story-stepper {
+    position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .hero-roster {
     padding: 14px;
   }
@@ -1367,6 +1441,14 @@ p {
   .guided-section,
   .exploration-prompt {
     padding: 60px 0;
+  }
+
+  .story-stepper {
+    grid-template-columns: 1fr;
+  }
+
+  .story-stepper button {
+    min-height: 58px;
   }
 
   .connectivity-bridge {
