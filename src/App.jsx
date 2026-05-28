@@ -736,7 +736,7 @@ function PokemonPicker({ pokemon, imageLookup, selectedPokemon, selectedName, on
   );
 }
 
-function HeroRoster({ pokemon, imageLookup }) {
+function HeroRoster({ pokemon, imageLookup, selectedName, onSelect }) {
   const featured = CASE_STUDIES.map((name) => pokemon.find((d) => d.Name === name)).filter(Boolean).slice(0, 6);
 
   return (
@@ -747,7 +747,13 @@ function HeroRoster({ pokemon, imageLookup }) {
       </div>
       <div className="hero-sprite-grid">
         {featured.map((d) => (
-          <figure key={d.Name} style={{ "--type-color": typeColor(d.Type1) }}>
+          <button
+            className={d.Name === selectedName ? "is-selected" : ""}
+            key={d.Name}
+            style={{ "--type-color": typeColor(d.Type1) }}
+            type="button"
+            onClick={() => onSelect(d.Name, { scrollToNetwork: true })}
+          >
             <span className="hero-type-mark">{d.Type1.slice(0, 3)}</span>
             <img
               src={imageForPokemon(d.Name, imageLookup)}
@@ -756,8 +762,8 @@ function HeroRoster({ pokemon, imageLookup }) {
               onLoad={(event) => event.currentTarget.classList.add("is-loaded")}
               onError={(event) => event.currentTarget.remove()}
             />
-            <figcaption>{compactName(d.Name)}</figcaption>
-          </figure>
+            <span className="hero-card-name">{compactName(d.Name)}</span>
+          </button>
         ))}
       </div>
     </aside>
@@ -1166,9 +1172,14 @@ export default function App() {
     [enrichedPokemon, selectedName],
   );
 
-  const handleSelectName = useCallback((name) => {
+  const handleSelectName = useCallback((name, options = {}) => {
     setSelectedName(name);
     setBrushedNames([]);
+    if (options.scrollToNetwork) {
+      window.requestAnimationFrame(() => {
+        document.getElementById("network-title")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
   }, []);
 
   const handleBrushNames = useCallback((names) => {
@@ -1218,7 +1229,12 @@ export default function App() {
             <span>{formatNumber(data.builds.length)} build records</span>
           </div>
         </div>
-        <HeroRoster pokemon={enrichedPokemon} imageLookup={data.imageLookup} />
+        <HeroRoster
+          pokemon={enrichedPokemon}
+          imageLookup={data.imageLookup}
+          selectedName={selectedName}
+          onSelect={handleSelectName}
+        />
       </section>
 
       <section className="guided-section" aria-labelledby="guided-title">
@@ -1260,7 +1276,7 @@ export default function App() {
         imageLookup={data.imageLookup}
         selectedPokemon={selectedPokemon}
         selectedName={selectedName}
-        onSelect={setSelectedName}
+        onSelect={handleSelectName}
       />
 
       <section className="network-section" aria-labelledby="network-title">

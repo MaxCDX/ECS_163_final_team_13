@@ -161,7 +161,7 @@ p {
   gap: 10px;
 }
 
-.hero-sprite-grid figure {
+.hero-sprite-grid button {
   position: relative;
   display: grid;
   min-height: 112px;
@@ -173,10 +173,18 @@ p {
   background:
     linear-gradient(140deg, color-mix(in srgb, var(--type-color) 22%, #161b20 78%), #14181c 64%),
     #14181c;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
   overflow: hidden;
+  text-align: center;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
 }
 
-.hero-sprite-grid figure::before {
+.hero-sprite-grid button::before {
   position: absolute;
   top: 14px;
   right: 13px;
@@ -186,6 +194,28 @@ p {
   border-radius: 999px;
   content: "";
   opacity: 0.78;
+}
+
+.hero-sprite-grid button:hover,
+.hero-sprite-grid button:focus-visible,
+.hero-sprite-grid button.is-selected {
+  border-color: color-mix(in srgb, var(--type-color) 72%, #f7f3ea 28%);
+  background:
+    linear-gradient(140deg, color-mix(in srgb, var(--type-color) 31%, #161b20 69%), #14181c 64%),
+    #14181c;
+}
+
+.hero-sprite-grid button:hover {
+  transform: translateY(-2px);
+}
+
+.hero-sprite-grid button:focus-visible {
+  outline: 2px solid #f2b56b;
+  outline-offset: 3px;
+}
+
+.hero-sprite-grid button.is-selected {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--type-color) 62%, #f2b56b 38%);
 }
 
 .hero-type-mark {
@@ -219,7 +249,7 @@ p {
   opacity: 1;
 }
 
-.hero-sprite-grid figcaption {
+.hero-card-name {
   position: relative;
   z-index: 2;
   align-self: end;
@@ -1305,14 +1335,14 @@ p {
     grid-template-columns: 1fr;
   }
 
-  .hero-sprite-grid figure {
+  .hero-sprite-grid button {
     grid-template-columns: 68px 1fr;
     min-height: 76px;
     justify-items: start;
     padding: 10px 12px;
   }
 
-  .hero-sprite-grid figure::before {
+  .hero-sprite-grid button::before {
     top: 22px;
     right: 14px;
   }
@@ -1327,7 +1357,7 @@ p {
     left: 38px;
   }
 
-  .hero-sprite-grid figcaption {
+  .hero-card-name {
     grid-column: 2;
     align-self: center;
     font-size: 0.82rem;
