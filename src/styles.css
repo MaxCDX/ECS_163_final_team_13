@@ -212,15 +212,11 @@ p {
   display: grid;
   width: 66px;
   height: 66px;
-  border: 1px solid rgba(242, 244, 241, 0.12);
-  border-radius: 8px;
   place-items: center;
-  background: rgba(255, 255, 255, 0.045);
 }
 
 .hero-sprite-grid button.is-selected .hero-sprite-frame {
-  border-color: color-mix(in srgb, var(--type-color) 64%, #f7f3ea 36%);
-  background: color-mix(in srgb, var(--type-color) 14%, rgba(255, 255, 255, 0.045) 86%);
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--type-color) 34%, transparent 66%));
 }
 
 .hero-sprite-grid img {
