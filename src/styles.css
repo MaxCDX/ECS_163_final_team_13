@@ -164,36 +164,25 @@ p {
 .hero-sprite-grid button {
   position: relative;
   display: grid;
-  min-height: 112px;
+  grid-template-rows: auto 1fr;
+  gap: 14px;
+  min-height: 132px;
   margin: 0;
   border: 1px solid rgba(242, 244, 241, 0.1);
   border-radius: 8px;
-  padding: 10px 8px 9px;
-  place-items: center;
+  padding: 12px;
   background:
-    linear-gradient(140deg, color-mix(in srgb, var(--type-color) 22%, #161b20 78%), #14181c 64%),
+    linear-gradient(140deg, color-mix(in srgb, var(--type-color) 15%, #161b20 85%), #14181c 66%),
     #14181c;
   color: inherit;
   cursor: pointer;
   font: inherit;
   overflow: hidden;
-  text-align: center;
+  text-align: left;
   transition:
     border-color 160ms ease,
     background 160ms ease,
     transform 160ms ease;
-}
-
-.hero-sprite-grid button::before {
-  position: absolute;
-  top: 14px;
-  right: 13px;
-  width: 30px;
-  height: 30px;
-  border: 2px solid color-mix(in srgb, var(--type-color) 52%, #f7f3ea 48%);
-  border-radius: 999px;
-  content: "";
-  opacity: 0.78;
 }
 
 .hero-sprite-grid button:hover,
@@ -201,7 +190,7 @@ p {
 .hero-sprite-grid button.is-selected {
   border-color: color-mix(in srgb, var(--type-color) 72%, #f7f3ea 28%);
   background:
-    linear-gradient(140deg, color-mix(in srgb, var(--type-color) 31%, #161b20 69%), #14181c 64%),
+    linear-gradient(140deg, color-mix(in srgb, var(--type-color) 24%, #161b20 76%), #14181c 66%),
     #14181c;
 }
 
@@ -218,46 +207,82 @@ p {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--type-color) 62%, #f2b56b 38%);
 }
 
-.hero-type-mark {
-  display: grid;
-  width: 52px;
-  height: 52px;
-  border: 1px solid color-mix(in srgb, var(--type-color) 70%, #f7f3ea 30%);
-  border-radius: 999px;
-  place-items: center;
-  background: color-mix(in srgb, var(--type-color) 26%, #101316 74%);
-  color: color-mix(in srgb, var(--type-color) 46%, #fff 54%);
-  font-size: 0.76rem;
-  font-weight: 860;
-  letter-spacing: 0.04em;
+.hero-card-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #aeb8b5;
+  font-size: 0.7rem;
+  font-weight: 850;
+  line-height: 1.1;
   text-transform: uppercase;
 }
 
-.hero-sprite-grid img {
-  position: absolute;
-  top: 16px;
-  left: 50%;
-  z-index: 1;
+.hero-type-pill {
+  border: 1px solid color-mix(in srgb, var(--type-color) 62%, white 38%);
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: color-mix(in srgb, var(--type-color) 21%, #101316 79%);
+  color: color-mix(in srgb, var(--type-color) 36%, #fff 64%);
+}
+
+.hero-card-main {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+
+.hero-sprite-frame {
+  position: relative;
+  display: grid;
   width: 58px;
   height: 58px;
+  border: 1px solid color-mix(in srgb, var(--type-color) 62%, #f7f3ea 38%);
+  border-radius: 8px;
+  place-items: center;
+  background: color-mix(in srgb, var(--type-color) 18%, #101316 82%);
+  overflow: hidden;
+}
+
+.hero-sprite-grid img {
+  position: static;
+  z-index: 1;
+  width: 52px;
+  height: 52px;
   object-fit: contain;
   opacity: 0;
-  transform: translateX(-50%);
 }
 
 .hero-sprite-grid img.is-loaded {
   opacity: 1;
 }
 
+.hero-card-copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
 .hero-card-name {
-  position: relative;
-  z-index: 2;
-  align-self: end;
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: #e7ece7;
+  font-size: 1rem;
+  font-weight: 860;
+  line-height: 1.12;
+}
+
+.hero-card-role {
+  display: block;
+  min-width: 0;
+  color: #9da8a5;
   font-size: 0.72rem;
-  font-weight: 780;
-  line-height: 1.2;
-  text-align: center;
+  font-weight: 760;
+  line-height: 1.25;
 }
 
 .guided-section,
@@ -1437,32 +1462,22 @@ p {
   }
 
   .hero-sprite-grid button {
-    grid-template-columns: 68px 1fr;
-    min-height: 76px;
-    justify-items: start;
+    min-height: 96px;
     padding: 10px 12px;
   }
 
-  .hero-sprite-grid button::before {
-    top: 22px;
-    right: 14px;
+  .hero-card-main {
+    grid-template-columns: 54px minmax(0, 1fr);
   }
 
-  .hero-type-mark {
-    grid-column: 1;
-    grid-row: 1;
+  .hero-sprite-frame {
+    width: 54px;
+    height: 54px;
   }
 
   .hero-sprite-grid img {
-    top: 10px;
-    left: 38px;
-  }
-
-  .hero-card-name {
-    grid-column: 2;
-    align-self: center;
-    font-size: 0.82rem;
-    text-align: left;
+    width: 48px;
+    height: 48px;
   }
 
   .guided-section,
