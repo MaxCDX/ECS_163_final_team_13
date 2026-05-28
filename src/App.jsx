@@ -378,13 +378,17 @@ function usePokemonData() {
 
 function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrush }) {
   const [containerRef, width] = useElementWidth();
+  const onBrushRef = useRef(onBrush);
+
+  useEffect(() => {
+    onBrushRef.current = onBrush;
+  }, [onBrush]);
 
   useEffect(() => {
     if (!width || !pokemon.length) return undefined;
 
     const data = pokemon.filter((d) => d.hasUsageData && Number.isFinite(d.Total) && usageValue(d) > 0);
     const selected = data.find((d) => d.Name === selectedName);
-    const brushedSet = new Set(brushedNames);
     const labelNames = new Set([...COMPARISON_NAMES, selectedName].filter(Boolean));
     const labelled = data.filter((d) => labelNames.has(d.Name));
     const trend = linearRegression(data, (d) => d.Total, usageValue);
@@ -482,9 +486,9 @@ function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrus
         [margin.left, margin.top],
         [width - margin.right, height - margin.bottom],
       ])
-      .on("end", (event) => {
+      .on("brush end", (event) => {
         if (!event.selection) {
-          onBrush([]);
+          onBrushRef.current([]);
           return;
         }
 
@@ -496,7 +500,7 @@ function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrus
             return x0 <= cx && cx <= x1 && y0 <= cy && cy <= y1;
           })
           .map((d) => d.Name);
-        onBrush(names);
+        onBrushRef.current(names);
       });
 
     svg.append("g").attr("class", "scatter-brush").call(brush);
@@ -511,7 +515,6 @@ function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrus
           "comparison-dot",
           COMPARISON_NAMES.includes(d.Name) ? "is-case-study" : "",
           d.Name === selectedName ? "is-selected" : "",
-          brushedSet.has(d.Name) ? "is-brushed" : "",
         ]
           .filter(Boolean)
           .join(" "),
@@ -543,7 +546,14 @@ function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrus
     svg.on("click", () => onSelect(null));
 
     return () => root.selectAll("*").remove();
-  }, [brushedNames, containerRef, onBrush, onSelect, pokemon, selectedName, width]);
+  }, [containerRef, onSelect, pokemon, selectedName, width]);
+
+  useEffect(() => {
+    const brushedSet = new Set(brushedNames);
+    d3.select(containerRef.current)
+      .selectAll(".comparison-dot")
+      .classed("is-brushed", (d) => brushedSet.has(d.Name));
+  }, [brushedNames, containerRef]);
 
   return (
     <div className="comparison-stack">
@@ -1204,6 +1214,7 @@ export default function App() {
   const [selectedName, setSelectedName] = useState("Incineroar");
   const [brushedNames, setBrushedNames] = useState([]);
   const [activeStep, setActiveStep] = useState("reveal");
+  const brushedKeyRef = useRef("");
 
   const enrichedPokemon = useMemo(() => {
     if (!data) return [];
@@ -1223,6 +1234,7 @@ export default function App() {
   const handleSelectName = useCallback((name, options = {}) => {
     setSelectedName(name);
     setBrushedNames([]);
+    brushedKeyRef.current = "";
     if (options.scrollToNetwork) {
       setActiveStep("reveal");
       window.requestAnimationFrame(() => {
@@ -1232,14 +1244,21 @@ export default function App() {
   }, []);
 
   const handleBrushNames = useCallback((names) => {
+    const nextKey = names.slice().sort().join("|");
+    if (nextKey === brushedKeyRef.current) return;
+    brushedKeyRef.current = nextKey;
     setBrushedNames(names);
-    if (names.length) setSelectedName(null);
+    if (names.length) {
+      setSelectedName(null);
+      setActiveStep("contradiction");
+    }
   }, []);
 
   const handleStoryStep = useCallback((step) => {
     setActiveStep(step.id);
     setSelectedName(step.selectedName || null);
     setBrushedNames([]);
+    brushedKeyRef.current = "";
     window.requestAnimationFrame(() => {
       document.getElementById(step.targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
