@@ -127,6 +127,14 @@ const ROLE_NOTES = new Map([
     "Terrain support: Fake Out pressure and Grassy Terrain make it valuable as part of repeated team structures.",
   ],
 ]);
+const NETWORK_ARCHETYPES = [
+  { label: "Support pivots", anchorName: "Incineroar", dx: 24, dy: -36 },
+  { label: "Restricted attackers", anchorName: "Zacian Crowned Sword", dx: 28, dy: 34 },
+  { label: "Weather pressure", anchorName: "Kyogre", dx: 26, dy: -30 },
+  { label: "Screen control", anchorName: "Grimmsnarl", dx: 24, dy: 32 },
+  { label: "Redirection support", anchorName: "Amoonguss", dx: 24, dy: -34 },
+  { label: "Terrain utility", anchorName: "Rillaboom", dx: 24, dy: 32 },
+];
 
 function typeColor(type) {
   return TYPE_COLORS.get(type) || "#8b949e";
@@ -909,6 +917,8 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
 
     const graphLinks = links.map((d) => ({ ...d, source: d.sourceName, target: d.targetName }));
     const graphNodes = nodes.map((d) => ({ ...d }));
+    const nodeByName = new Map(graphNodes.map((d) => [d.Name, d]));
+    const archetypes = NETWORK_ARCHETYPES.filter((d) => nodeByName.has(d.anchorName));
     const radius = d3.scaleSqrt().domain([0, d3.max(graphNodes, usageValue) || 1]).range([6, 24]);
     const edgeWidth = d3.scaleLinear().domain(d3.extent(graphLinks, (d) => d.coUsagePercent)).range([0.8, 4.5]);
 
@@ -921,6 +931,15 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
       .attr("class", "link")
       .attr("stroke-width", (d) => edgeWidth(d.coUsagePercent))
       .attr("stroke-opacity", (d) => Math.min(0.55, 0.14 + d.coUsagePercent / 180));
+
+    const archetypeLabel = svg
+      .append("g")
+      .attr("class", "archetype-labels")
+      .selectAll("text")
+      .data(archetypes)
+      .join("text")
+      .attr("class", "archetype-label")
+      .text((d) => d.label);
 
     const nodeLayer = svg
       .append("g")
@@ -1001,6 +1020,9 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
           .attr("x", (d) => d.x - Math.max(20, radius(usageValue(d)) * 1.7) / 2)
           .attr("y", (d) => d.y - Math.max(20, radius(usageValue(d)) * 1.7) / 2);
         label.attr("x", (d) => d.x + radius(usageValue(d)) + 5).attr("y", (d) => d.y + 4);
+        archetypeLabel
+          .attr("x", (d) => Math.max(18, Math.min(width - 160, nodeByName.get(d.anchorName).x + d.dx)))
+          .attr("y", (d) => Math.max(18, Math.min(height - 18, nodeByName.get(d.anchorName).y + d.dy)));
       });
 
     nodeLayer.call(
@@ -1104,6 +1126,11 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
           (!selectedInGraph && brushedSet.size <= 12 && brushedSet.has(d.Name)),
       )
       .classed("is-reveal-label", (d) => selectedInGraph && (d.Name === selectedName || strongestNeighborLabels.has(d.Name)));
+
+    root
+      .selectAll(".archetype-label")
+      .classed("is-muted", (d) => selectedInGraph && d.anchorName !== selectedName && !connected.has(d.anchorName))
+      .classed("is-active", (d) => selectedInGraph && (d.anchorName === selectedName || connected.has(d.anchorName)));
   }, [brushedNames, containerRef, links, nodes, selectedName]);
 
   return (
