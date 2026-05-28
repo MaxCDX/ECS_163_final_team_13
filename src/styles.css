@@ -164,21 +164,22 @@ p {
 .hero-sprite-grid button {
   position: relative;
   display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 14px;
-  min-height: 132px;
+  grid-template-rows: 1fr auto auto;
+  gap: 8px;
+  min-height: 112px;
   margin: 0;
   border: 1px solid rgba(242, 244, 241, 0.1);
   border-radius: 8px;
-  padding: 12px;
+  padding: 14px 10px 12px;
+  place-items: center;
   background:
-    linear-gradient(140deg, color-mix(in srgb, var(--type-color) 15%, #161b20 85%), #14181c 66%),
+    linear-gradient(140deg, color-mix(in srgb, var(--type-color) 14%, #161b20 86%), #14181c 68%),
     #14181c;
   color: inherit;
   cursor: pointer;
   font: inherit;
   overflow: hidden;
-  text-align: left;
+  text-align: center;
   transition:
     border-color 160ms ease,
     background 160ms ease,
@@ -190,7 +191,7 @@ p {
 .hero-sprite-grid button.is-selected {
   border-color: color-mix(in srgb, var(--type-color) 72%, #f7f3ea 28%);
   background:
-    linear-gradient(140deg, color-mix(in srgb, var(--type-color) 24%, #161b20 76%), #14181c 66%),
+    linear-gradient(140deg, color-mix(in srgb, var(--type-color) 22%, #161b20 78%), #14181c 68%),
     #14181c;
 }
 
@@ -207,51 +208,24 @@ p {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--type-color) 62%, #f2b56b 38%);
 }
 
-.hero-card-topline {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  color: #aeb8b5;
-  font-size: 0.7rem;
-  font-weight: 850;
-  line-height: 1.1;
-  text-transform: uppercase;
-}
-
-.hero-type-pill {
-  border: 1px solid color-mix(in srgb, var(--type-color) 62%, white 38%);
-  border-radius: 999px;
-  padding: 4px 8px;
-  background: color-mix(in srgb, var(--type-color) 21%, #101316 79%);
-  color: color-mix(in srgb, var(--type-color) 36%, #fff 64%);
-}
-
-.hero-card-main {
-  display: grid;
-  grid-template-columns: 58px minmax(0, 1fr);
-  gap: 12px;
-  align-items: center;
-  min-width: 0;
-}
-
 .hero-sprite-frame {
-  position: relative;
   display: grid;
-  width: 58px;
-  height: 58px;
-  border: 1px solid color-mix(in srgb, var(--type-color) 62%, #f7f3ea 38%);
+  width: 66px;
+  height: 66px;
+  border: 1px solid rgba(242, 244, 241, 0.12);
   border-radius: 8px;
   place-items: center;
-  background: color-mix(in srgb, var(--type-color) 18%, #101316 82%);
-  overflow: hidden;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.hero-sprite-grid button.is-selected .hero-sprite-frame {
+  border-color: color-mix(in srgb, var(--type-color) 64%, #f7f3ea 36%);
+  background: color-mix(in srgb, var(--type-color) 14%, rgba(255, 255, 255, 0.045) 86%);
 }
 
 .hero-sprite-grid img {
-  position: static;
-  z-index: 1;
-  width: 52px;
-  height: 52px;
+  width: 58px;
+  height: 58px;
   object-fit: contain;
   opacity: 0;
 }
@@ -260,29 +234,19 @@ p {
   opacity: 1;
 }
 
-.hero-card-copy {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-}
-
 .hero-card-name {
-  display: block;
-  min-width: 0;
-  overflow-wrap: anywhere;
   color: #e7ece7;
-  font-size: 1rem;
-  font-weight: 860;
-  line-height: 1.12;
+  font-size: 0.82rem;
+  font-weight: 820;
+  line-height: 1.15;
+  text-align: center;
 }
 
-.hero-card-role {
-  display: block;
-  min-width: 0;
+.hero-sprite-grid small {
   color: #9da8a5;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 760;
-  line-height: 1.25;
+  line-height: 1.15;
 }
 
 .guided-section,
@@ -1462,15 +1426,17 @@ p {
   }
 
   .hero-sprite-grid button {
-    min-height: 96px;
+    grid-template-columns: 68px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    gap: 3px 12px;
+    min-height: 76px;
+    justify-items: start;
     padding: 10px 12px;
   }
 
-  .hero-card-main {
-    grid-template-columns: 54px minmax(0, 1fr);
-  }
-
   .hero-sprite-frame {
+    grid-column: 1;
+    grid-row: 1 / span 2;
     width: 54px;
     height: 54px;
   }
@@ -1478,6 +1444,19 @@ p {
   .hero-sprite-grid img {
     width: 48px;
     height: 48px;
+  }
+
+  .hero-card-name {
+    grid-column: 2;
+    align-self: end;
+    font-size: 0.82rem;
+    text-align: left;
+  }
+
+  .hero-sprite-grid small {
+    grid-column: 2;
+    align-self: start;
+    text-align: left;
   }
 
   .guided-section,

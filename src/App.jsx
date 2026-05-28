@@ -127,14 +127,6 @@ const ROLE_NOTES = new Map([
     "Terrain support: Fake Out pressure and Grassy Terrain make it valuable as part of repeated team structures.",
   ],
 ]);
-const CASE_STUDY_ROLES = new Map([
-  ["Incineroar", "Support pivot"],
-  ["Zacian Crowned Sword", "Restricted attacker"],
-  ["Kyogre", "Weather pressure"],
-  ["Grimmsnarl", "Screen control"],
-  ["Amoonguss", "Redirection support"],
-  ["Rillaboom", "Terrain utility"],
-]);
 const NETWORK_ARCHETYPES = [
   { label: "Support pivots", anchorName: "Incineroar", dx: 24, dy: -36 },
   { label: "Restricted attackers", anchorName: "Zacian Crowned Sword", dx: 28, dy: 34 },
@@ -881,25 +873,17 @@ function HeroRoster({ pokemon, imageLookup, selectedName, onSelect }) {
             type="button"
             onClick={() => onSelect(d.Name, { scrollToNetwork: true })}
           >
-            <span className="hero-card-topline">
-              <span className="hero-type-pill">{d.Type1}</span>
-              <span>{formatPercent(usageValue(d))}% use</span>
+            <span className="hero-sprite-frame">
+              <img
+                src={imageForPokemon(d.Name, imageLookup)}
+                alt=""
+                className={LOCAL_IMAGE_PATHS.has(d.Name) ? "is-loaded" : ""}
+                onLoad={(event) => event.currentTarget.classList.add("is-loaded")}
+                onError={(event) => event.currentTarget.remove()}
+              />
             </span>
-            <span className="hero-card-main">
-              <span className="hero-sprite-frame">
-                <img
-                  src={imageForPokemon(d.Name, imageLookup)}
-                  alt=""
-                  className={LOCAL_IMAGE_PATHS.has(d.Name) ? "is-loaded" : ""}
-                  onLoad={(event) => event.currentTarget.classList.add("is-loaded")}
-                  onError={(event) => event.currentTarget.remove()}
-                />
-              </span>
-              <span className="hero-card-copy">
-                <span className="hero-card-name">{compactName(d.Name)}</span>
-                <span className="hero-card-role">{CASE_STUDY_ROLES.get(d.Name) || typeLabel(d)}</span>
-              </span>
-            </span>
+            <span className="hero-card-name">{compactName(d.Name)}</span>
+            <small>{typeLabel(d)}</small>
           </button>
         ))}
       </div>
