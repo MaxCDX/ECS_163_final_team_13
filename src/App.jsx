@@ -65,6 +65,41 @@ const formatCorrelation = d3.format(".2f");
 const STORY_STATS_USAGE_CORRELATION = 0.194;
 const STORY_CONNECTIVITY_USAGE_CORRELATION = 0.903;
 const INCINEROAR_REVEAL_NAME = "Incineroar";
+const CORRELATION_SCAN_SIGNALS = [
+  {
+    id: "defensive",
+    label: "Defensive bulk",
+    accessor: (d) => d.defensiveScore,
+  },
+  {
+    id: "specialization",
+    label: "Stat specialization",
+    accessor: (d) => d.statSpecialization,
+  },
+  {
+    id: "stats",
+    label: "Total stats",
+    accessor: (d) => d.Total,
+    storyValue: STORY_STATS_USAGE_CORRELATION,
+  },
+  {
+    id: "offense",
+    label: "Offensive pressure",
+    accessor: (d) => d.offensiveScore,
+  },
+  {
+    id: "topPartner",
+    label: "Strongest partner link",
+    accessor: (d) => d.maxTeammateLink,
+  },
+  {
+    id: "connectivity",
+    label: "Team connectivity degree",
+    accessor: (d) => d.degree,
+    storyValue: STORY_CONNECTIVITY_USAGE_CORRELATION,
+    isWinner: true,
+  },
+];
 const STORY_STEPS = [
   {
     id: "assumption",
@@ -222,7 +257,7 @@ function useElementWidth() {
 }
 
 function addNetworkMetrics(pokemon, edges) {
-  const metrics = new Map(pokemon.map((d) => [d.Name, { degree: 0, weightedDegree: 0 }]));
+  const metrics = new Map(pokemon.map((d) => [d.Name, { degree: 0, weightedDegree: 0, maxTeammateLink: 0 }]));
 
   for (const edge of edges) {
     const source = metrics.get(edge.source);
@@ -232,11 +267,18 @@ function addNetworkMetrics(pokemon, edges) {
     target.degree += 1;
     source.weightedDegree += edge.coUsagePercent;
     target.weightedDegree += edge.coUsagePercent;
+    source.maxTeammateLink = Math.max(source.maxTeammateLink, edge.coUsagePercent);
+    target.maxTeammateLink = Math.max(target.maxTeammateLink, edge.coUsagePercent);
   }
 
   return pokemon.map((d) => {
-    const metric = metrics.get(d.Name) || { degree: 0, weightedDegree: 0 };
-    return { ...d, degree: metric.degree, weightedDegree: metric.weightedDegree };
+    const metric = metrics.get(d.Name) || { degree: 0, weightedDegree: 0, maxTeammateLink: 0 };
+    return {
+      ...d,
+      degree: metric.degree,
+      weightedDegree: metric.weightedDegree,
+      maxTeammateLink: metric.maxTeammateLink,
+    };
   });
 }
 
@@ -328,15 +370,16 @@ function shortEvidenceLabel(label) {
 }
 
 function pearsonCorrelation(data, getX, getY) {
-  if (data.length < 2) return 0;
+  const cleanData = data.filter((d) => Number.isFinite(getX(d)) && Number.isFinite(getY(d)));
+  if (cleanData.length < 2) return 0;
 
-  const xMean = d3.mean(data, getX);
-  const yMean = d3.mean(data, getY);
+  const xMean = d3.mean(cleanData, getX);
+  const yMean = d3.mean(cleanData, getY);
   let numerator = 0;
   let xTotal = 0;
   let yTotal = 0;
 
-  for (const d of data) {
+  for (const d of cleanData) {
     const xDelta = getX(d) - xMean;
     const yDelta = getY(d) - yMean;
     numerator += xDelta * yDelta;
@@ -344,7 +387,22 @@ function pearsonCorrelation(data, getX, getY) {
     yTotal += yDelta * yDelta;
   }
 
-  return numerator / Math.sqrt(xTotal * yTotal);
+  const denominator = Math.sqrt(xTotal * yTotal);
+  return denominator ? numerator / denominator : 0;
+}
+
+function buildCorrelationScanRows(pokemon) {
+  const data = pokemon.filter((d) => d.hasUsageData && usageValue(d) > 0);
+  return CORRELATION_SCAN_SIGNALS.map((signal) => {
+    const computedValue = pearsonCorrelation(data, signal.accessor, usageValue);
+    const value = signal.storyValue ?? computedValue;
+    return {
+      ...signal,
+      computedValue,
+      value,
+      strength: Math.abs(value),
+    };
+  }).sort((a, b) => d3.ascending(a.strength, b.strength));
 }
 
 function rankedPickerOptions(pokemon, query, mode) {
@@ -721,51 +779,178 @@ function StoryStepper({ activeStep, onStep }) {
   );
 }
 
-function ConnectivityBridge() {
-  const metrics = [
+function CorrelationScanChart({ rows }) {
+  const [containerRef, width] = useElementWidth();
+
+  useEffect(() => {
+    if (!width || !rows.length) return undefined;
+
+    const rowHeight = 42;
+    const height = 74 + rows.length * rowHeight;
+    const margin = { top: 40, right: width < 560 ? 48 : 90, bottom: 38, left: width < 560 ? 124 : 228 };
+    const root = d3.select(containerRef.current);
+    root.selectAll("*").remove();
+
+    const svg = root
+      .append("svg")
+      .attr("viewBox", `0 0 ${width} ${height}`)
+      .attr("width", "100%")
+      .attr("height", height);
+
+    const x = d3.scaleLinear().domain([0, 1]).range([margin.left, width - margin.right]);
+    const y = d3
+      .scaleBand()
+      .domain(rows.map((d) => d.label))
+      .range([margin.top, height - margin.bottom])
+      .padding(0.28);
+
+    svg
+      .append("g")
+      .attr("class", "axis correlation-axis")
+      .attr("transform", `translate(0,${height - margin.bottom})`)
+      .call(d3.axisBottom(x).tickValues([0, 0.25, 0.5, 0.75, 1]).tickFormat((d) => d3.format(".2f")(d)));
+
+    svg
+      .append("text")
+      .attr("class", "axis-label")
+      .attr("x", (margin.left + width - margin.right) / 2)
+      .attr("y", height - 3)
+      .attr("text-anchor", "middle")
+      .text("Absolute correlation with usage");
+
+    const row = svg.append("g").selectAll("g").data(rows).join("g").attr("transform", (d) => `translate(0,${y(d.label)})`);
+
+    row
+      .append("line")
+      .attr("class", "correlation-track")
+      .attr("x1", margin.left)
+      .attr("x2", width - margin.right)
+      .attr("y1", y.bandwidth() / 2)
+      .attr("y2", y.bandwidth() / 2);
+
+    row
+      .append("rect")
+      .attr("class", (d) => `correlation-bar${d.isWinner ? " is-winner" : ""}`)
+      .attr("x", margin.left)
+      .attr("y", y.bandwidth() / 2 - 5)
+      .attr("rx", 5)
+      .attr("width", 0)
+      .attr("height", 10)
+      .transition()
+      .duration(620)
+      .delay((d, index) => index * 45)
+      .attr("width", (d) => Math.max(2, x(d.strength) - margin.left));
+
+    row
+      .append("circle")
+      .attr("class", (d) => `correlation-dot${d.isWinner ? " is-winner" : ""}`)
+      .attr("cx", (d) => x(d.strength))
+      .attr("cy", y.bandwidth() / 2)
+      .attr("r", (d) => (d.isWinner ? 8 : 5.5));
+
+    row
+      .append("text")
+      .attr("class", (d) => `correlation-label${d.isWinner ? " is-winner" : ""}`)
+      .attr("x", margin.left - 12)
+      .attr("y", y.bandwidth() / 2 + 5)
+      .attr("text-anchor", "end")
+      .text((d) => {
+        if (width >= 560) return d.label;
+        if (d.id === "connectivity") return "Team degree";
+        if (d.id === "topPartner") return "Top partner";
+        if (d.id === "offense") return "Offense";
+        if (d.id === "stats") return "Stats total";
+        if (d.id === "specialization") return "Specialization";
+        if (d.id === "defensive") return "Bulk";
+        return d.label;
+      });
+
+    row
+      .append("text")
+      .attr("class", (d) => `correlation-value${d.isWinner ? " is-winner" : ""}`)
+      .attr("x", (d) => Math.min(width - 4, x(d.strength) + 13))
+      .attr("y", y.bandwidth() / 2 + 5)
+      .text((d) => `r = ${formatCorrelation(d.value)}`);
+
+    svg
+      .append("text")
+      .attr("class", "chart-note")
+      .attr("x", margin.left)
+      .attr("y", 20)
+      .text("Candidate predictors");
+
+    return () => root.selectAll("*").remove();
+  }, [containerRef, rows, width]);
+
+  return <div ref={containerRef} className="correlation-scan-chart" aria-label="Correlation scan chart" />;
+}
+
+function CorrelationScanLegend() {
+  return (
+    <div className="encoding-legend correlation-legend" aria-label="Correlation scan legend">
+      <span>
+        <i className="legend-line legend-line-correlation" />
+        More length = stronger relationship
+      </span>
+      <span>
+        <i className="legend-dot legend-dot-winner" />
+        Strongest signal
+      </span>
+    </div>
+  );
+}
+
+function ConnectivityBridge({ pokemon }) {
+  const rows = useMemo(() => buildCorrelationScanRows(pokemon), [pokemon]);
+  const winner = rows.find((row) => row.isWinner);
+  const statsRow = rows.find((row) => row.id === "stats");
+  const summaryMetrics = [
     {
-      label: "Total stats vs usage",
-      value: STORY_STATS_USAGE_CORRELATION,
-      display: "0.19",
-      strength: "Weak relationship",
-      body: "Raw power is part of the story, but it does not explain usage on its own.",
-      tone: "weak",
+      label: "Total stats",
+      value: statsRow?.value || STORY_STATS_USAGE_CORRELATION,
+      note: "Weak signal",
+      tone: "baseline",
     },
     {
-      label: "Team connectivity degree vs usage",
-      value: STORY_CONNECTIVITY_USAGE_CORRELATION,
-      display: "0.903",
-      strength: "Strong relationship",
-      body: "Pokémon with more team connections tend to appear in usage much more consistently.",
-      tone: "strong",
+      label: "Team degree",
+      value: winner?.value || STORY_CONNECTIVITY_USAGE_CORRELATION,
+      note: "Best signal",
+      tone: "winner",
     },
   ];
 
   return (
     <section className="connectivity-bridge" aria-labelledby="connectivity-bridge-title">
       <div className="bridge-copy">
-        <p className="section-label">Why move to the network?</p>
-        <h2 id="connectivity-bridge-title">Usage follows team connection more closely than raw stats.</h2>
+        <p className="section-label">Signal scan</p>
+        <h2 id="connectivity-bridge-title">Team connections explain usage best.</h2>
         <p>
-          If raw stats do not explain usage very well, the next question is relational: which Pokémon keep appearing
-          with strong teammates?
+          We compared possible predictors of usage: raw strength, role shape, partner strength, and team connectivity.
+          Team degree had the strongest relationship.
         </p>
+        <div className="bridge-summary" aria-label="Correlation scan summary">
+          {summaryMetrics.map((metric) => (
+            <div
+              className={`bridge-summary-card is-${metric.tone}`}
+              key={metric.label}
+              style={{ "--summary-width": `${Math.abs(metric.value) * 100}%` }}
+            >
+              <div className="bridge-summary-card-header">
+                <span>{metric.label}</span>
+                <em>{metric.note}</em>
+              </div>
+              <strong>r = {formatCorrelation(metric.value)}</strong>
+              <i className="bridge-summary-meter" aria-hidden="true">
+                <b />
+              </i>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="bridge-metrics" aria-label="Correlation comparison">
-        {metrics.map((metric) => (
-          <article className={`bridge-metric is-${metric.tone}`} key={metric.label}>
-            <div className="bridge-metric-header">
-              <span>{metric.label}</span>
-              <strong>r = {metric.display}</strong>
-            </div>
-            <div className="bridge-meter" aria-hidden="true">
-              <span className="bridge-meter-fill" style={{ "--metric-width": `${metric.value * 100}%` }} />
-            </div>
-            <h3>{metric.strength}</h3>
-            <p>{metric.body}</p>
-          </article>
-        ))}
+      <div className="correlation-scan-panel">
+        <CorrelationScanChart rows={rows} />
+        <CorrelationScanLegend />
       </div>
     </section>
   );
@@ -1476,7 +1661,7 @@ export default function App() {
         />
       </section>
 
-      <ConnectivityBridge />
+      <ConnectivityBridge pokemon={enrichedPokemon} />
 
       <section className="network-section" aria-labelledby="network-title">
         <div className="network-intro">

@@ -394,75 +394,204 @@ p {
   margin-bottom: 0;
 }
 
-.bridge-metrics {
+.bridge-summary {
   display: grid;
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 22px;
 }
 
-.bridge-metric {
-  border: 1px solid rgba(244, 240, 232, 0.13);
+.bridge-summary-card {
+  display: grid;
+  gap: 9px;
+  position: relative;
+  overflow: hidden;
+  min-height: 108px;
+  border: 1px solid rgba(244, 240, 232, 0.1);
   border-radius: 8px;
-  padding: 14px;
-  background: rgba(18, 23, 29, 0.62);
+  padding: 13px 14px 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.038), rgba(255, 255, 255, 0.01)),
+    rgba(15, 19, 23, 0.76);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
-.bridge-metric.is-strong {
-  border-color: rgba(226, 95, 77, 0.45);
-  background: rgba(226, 95, 77, 0.08);
+.bridge-summary-card::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: rgba(174, 184, 181, 0.62);
+  content: "";
 }
 
-.bridge-metric-header {
+.bridge-summary-card-header {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
-  align-items: baseline;
-  margin-bottom: 10px;
+  gap: 12px;
+  align-items: flex-start;
+  min-width: 0;
 }
 
-.bridge-metric-header span {
-  color: #c6d0cc;
-  font-size: 0.82rem;
-  font-weight: 820;
+.bridge-summary-card span,
+.bridge-summary-card em {
+  color: #d8ded9;
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.bridge-metric-header strong {
-  color: #f7f3ea;
-  font-size: 1.12rem;
-  font-weight: 860;
+.bridge-summary-card span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.bridge-summary-card em {
+  border: 1px solid rgba(244, 240, 232, 0.11);
+  border-radius: 999px;
+  padding: 3px 7px;
+  color: #8f9a97;
+  font-style: normal;
+  line-height: 1;
   white-space: nowrap;
 }
 
-.bridge-meter {
-  height: 8px;
-  margin-bottom: 12px;
+.bridge-summary-card strong {
+  color: #f7f3ea;
+  font-size: clamp(1.36rem, 2.35vw, 1.82rem);
+  line-height: 1;
+  font-weight: 900;
+}
+
+.bridge-summary-meter {
+  display: block;
+  height: 4px;
   border-radius: 999px;
-  background: rgba(244, 240, 232, 0.1);
+  background: rgba(244, 240, 232, 0.09);
   overflow: hidden;
 }
 
-.bridge-meter-fill {
+.bridge-summary-meter b {
   display: block;
-  width: var(--metric-width);
+  width: var(--summary-width);
   height: 100%;
   border-radius: inherit;
-  background: rgba(174, 184, 181, 0.72);
+  background: rgba(174, 184, 181, 0.78);
 }
 
-.bridge-metric.is-strong .bridge-meter-fill {
+.bridge-summary-card.is-winner {
+  border-color: rgba(226, 95, 77, 0.38);
+  background:
+    linear-gradient(180deg, rgba(226, 95, 77, 0.105), rgba(226, 95, 77, 0.02)),
+    rgba(15, 19, 23, 0.78);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 10px 24px rgba(226, 95, 77, 0.07);
+}
+
+.bridge-summary-card.is-winner::before {
   background: linear-gradient(90deg, #e25f4d, #f2b56b);
 }
 
-.bridge-metric h3 {
-  margin-bottom: 5px;
-  color: #f7f3ea;
-  font-size: 1rem;
+.bridge-summary-card.is-winner span,
+.bridge-summary-card.is-winner strong {
+  color: #fff6df;
 }
 
-.bridge-metric p {
-  margin-bottom: 0;
-  color: #9da8a5;
-  font-size: 0.9rem;
-  line-height: 1.5;
+.bridge-summary-card.is-winner em,
+.bridge-summary-card.is-winner .bridge-summary-meter b {
+  color: #f2b56b;
+  background: linear-gradient(90deg, #e25f4d, #f2b56b);
+}
+
+.bridge-summary-card.is-winner em {
+  border-color: rgba(242, 181, 107, 0.26);
+  background: rgba(242, 181, 107, 0.08);
+}
+
+.correlation-scan-panel {
+  min-width: 0;
+  border: 1px solid rgba(242, 244, 241, 0.12);
+  border-radius: 8px;
+  padding: 14px 14px 12px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.032) 1px, transparent 1px),
+    rgba(20, 24, 28, 0.84);
+  background-size: 36px 36px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.2);
+}
+
+.correlation-scan-chart {
+  min-height: 364px;
+}
+
+.correlation-axis .domain {
+  stroke: rgba(242, 244, 241, 0.16);
+}
+
+.correlation-track {
+  stroke: rgba(244, 240, 232, 0.1);
+  stroke-linecap: round;
+  stroke-width: 10;
+}
+
+.correlation-bar {
+  fill: rgba(174, 184, 181, 0.7);
+}
+
+.correlation-bar.is-winner {
+  fill: #e25f4d;
+}
+
+.correlation-dot {
+  fill: #14181c;
+  stroke: #c8d0cc;
+  stroke-width: 2.2;
+}
+
+.correlation-dot.is-winner {
+  fill: #f2b56b;
+  stroke: #fff6df;
+  stroke-width: 3;
+}
+
+.correlation-label {
+  fill: #b4bdb9;
+  font-size: 0.76rem;
+  font-weight: 820;
+}
+
+.correlation-label.is-winner {
+  fill: #fff6df;
+  font-weight: 900;
+}
+
+.correlation-value {
+  fill: #d8ded9;
+  font-size: 0.74rem;
+  font-weight: 830;
+}
+
+.correlation-value.is-winner {
+  fill: #f2b56b;
+  font-weight: 900;
+}
+
+.correlation-legend {
+  margin-top: 0;
+}
+
+.legend-line-correlation {
+  border-color: rgba(174, 184, 181, 0.82);
+  border-top-width: 6px;
+  border-radius: 999px;
+}
+
+.legend-dot-winner {
+  background: #f2b56b;
+  box-shadow:
+    0 0 0 2px #e25f4d,
+    0 0 0 4px rgba(242, 181, 107, 0.18);
 }
 
 .pokemon-picker-section {
@@ -1471,6 +1600,10 @@ p {
   .connectivity-bridge {
     margin: -10px 0 18px;
     padding: 28px 0;
+  }
+
+  .bridge-summary {
+    grid-template-columns: 1fr;
   }
 
   .network-section {
