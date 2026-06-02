@@ -1063,11 +1063,147 @@ p {
   font-weight: 850;
 }
 
+.role-causality-card {
+  margin: -4px 0 16px;
+  border: 1px solid rgba(124, 190, 255, 0.24);
+  border-radius: 8px;
+  padding: 12px;
+  background: linear-gradient(180deg, rgba(124, 190, 255, 0.1), rgba(124, 190, 255, 0.045));
+}
+
+.role-causality-card h4 {
+  margin-bottom: 8px;
+  color: #9fd0ff;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.role-flow-diagram {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid rgba(242, 244, 241, 0.08);
+  border-radius: 6px;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    rgba(15, 21, 27, 0.72);
+  background-size: 22px 22px;
+}
+
+.role-flow-connectors line,
+.role-flow-connectors path {
+  fill: none;
+  stroke: #9fd0ff;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  opacity: 0.72;
+}
+
+.role-flow-node rect {
+  fill: rgba(124, 190, 255, 0.12);
+  stroke: rgba(159, 208, 255, 0.38);
+  stroke-width: 1;
+}
+
+.role-flow-node.is-outcome rect {
+  fill: rgba(242, 181, 107, 0.16);
+  stroke: rgba(242, 181, 107, 0.62);
+  stroke-width: 1.4;
+}
+
+.role-flow-node text {
+  paint-order: stroke;
+  stroke: rgba(15, 21, 27, 0.82);
+  stroke-width: 2px;
+}
+
+.role-node-label {
+  fill: #fff9ef;
+  font-size: 0.48rem;
+  font-weight: 850;
+}
+
+.role-node-detail {
+  fill: #d8ded9;
+  font-size: 0.42rem;
+  font-weight: 720;
+}
+
+.role-flow-node.is-outcome .role-node-detail {
+  fill: #f2b56b;
+  font-weight: 850;
+}
+
+.team-ecosystem-panel {
+  margin: 0 0 16px;
+  border: 1px solid rgba(126, 217, 164, 0.22);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(126, 217, 164, 0.055);
+}
+
+.team-ecosystem-panel h4 {
+  margin-bottom: 8px;
+  color: #9be0b8;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.ecosystem-graph {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid rgba(242, 244, 241, 0.08);
+  border-radius: 6px;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    rgba(17, 23, 27, 0.68);
+  background-size: 22px 22px;
+}
+
+.ecosystem-links line {
+  stroke: #9be0b8;
+  stroke-linecap: round;
+  opacity: 0.74;
+}
+
+.ecosystem-node circle {
+  stroke: rgba(255, 249, 239, 0.78);
+  stroke-width: 1.5;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.28));
+}
+
+.ecosystem-node.is-selected circle {
+  stroke: #ff725c;
+  stroke-width: 3;
+}
+
+.ecosystem-node text {
+  fill: #fff9ef;
+  font-size: 0.74rem;
+  font-weight: 850;
+  paint-order: stroke;
+  stroke: rgba(17, 23, 27, 0.9);
+  stroke-width: 3px;
+}
+
+.ecosystem-interpretation {
+  margin: 9px 0 0;
+  color: #d8ded9;
+  font-size: 0.84rem;
+  line-height: 1.38;
+}
+
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  margin: 0 0 22px;
+  margin: 16px 0 0;
 }
 
 .metric-grid div {
@@ -1092,7 +1228,7 @@ p {
 }
 
 .role-evidence {
-  margin: -6px 0 20px;
+  margin: 0 0 16px;
   border: 1px solid rgba(242, 181, 107, 0.28);
   border-radius: 8px;
   padding: 12px;

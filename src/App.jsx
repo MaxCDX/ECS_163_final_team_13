@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
+import RoleCausalityCard from "./RoleCausalityCard.jsx";
+import TeamEcosystemPanel from "./TeamEcosystemPanel.jsx";
 
 const DATA_PATHS = {
   pokemon: "/data/processed/pokemon_clean.csv",
@@ -24,7 +26,7 @@ const COMPARISON_NAMES = ["Zacian Crowned Sword", "Zamazenta Crowned Shield", "I
 const PICKER_MODES = [
   { id: "usage", label: "Usage", metricLabel: "Usage" },
   { id: "stats", label: "Stats", metricLabel: "Base stats" },
-  { id: "synergy", label: "Synergy", metricLabel: "Synergy weight" },
+  { id: "synergy", label: "Synergy", metricLabel: "Teammate footprint" },
 ];
 const LOCAL_IMAGE_PATHS = new Map([
   ["Incineroar", "/assets/pokemon/incineroar.png"],
@@ -68,12 +70,12 @@ const INCINEROAR_REVEAL_NAME = "Incineroar";
 const CORRELATION_SCAN_SIGNALS = [
   {
     id: "defensive",
-    label: "Defensive bulk",
+    label: "Defense",
     accessor: (d) => d.defensiveScore,
   },
   {
     id: "specialization",
-    label: "Stat specialization",
+    label: "Stat focus",
     accessor: (d) => d.statSpecialization,
   },
   {
@@ -84,7 +86,7 @@ const CORRELATION_SCAN_SIGNALS = [
   },
   {
     id: "offense",
-    label: "Offensive pressure",
+    label: "Offense",
     accessor: (d) => d.offensiveScore,
   },
   {
@@ -94,7 +96,7 @@ const CORRELATION_SCAN_SIGNALS = [
   },
   {
     id: "connectivity",
-    label: "Team connectivity degree",
+    label: "Connectivity degree",
     accessor: (d) => d.degree,
     storyValue: STORY_CONNECTIVITY_USAGE_CORRELATION,
     isWinner: true,
@@ -856,7 +858,7 @@ function CorrelationScanChart({ rows }) {
       .attr("text-anchor", "end")
       .text((d) => {
         if (width >= 560) return d.label;
-        if (d.id === "connectivity") return "Team degree";
+        if (d.id === "connectivity") return "Connectivity";
         if (d.id === "topPartner") return "Top partner";
         if (d.id === "offense") return "Offense";
         if (d.id === "stats") return "Stats total";
@@ -877,7 +879,7 @@ function CorrelationScanChart({ rows }) {
       .attr("class", "chart-note")
       .attr("x", margin.left)
       .attr("y", 20)
-      .text("Candidate predictors");
+      .text("What explains usage?");
 
     return () => root.selectAll("*").remove();
   }, [containerRef, rows, width]);
@@ -912,7 +914,7 @@ function ConnectivityBridge({ pokemon }) {
       tone: "baseline",
     },
     {
-      label: "Team degree",
+      label: "Connectivity degree",
       value: winner?.value || STORY_CONNECTIVITY_USAGE_CORRELATION,
       note: "Best signal",
       tone: "winner",
@@ -923,10 +925,10 @@ function ConnectivityBridge({ pokemon }) {
     <section className="connectivity-bridge" aria-labelledby="connectivity-bridge-title">
       <div className="bridge-copy">
         <p className="section-label">Signal scan</p>
-        <h2 id="connectivity-bridge-title">Team connections explain usage best.</h2>
+        <h2 id="connectivity-bridge-title">Usage follows team connections more closely than raw stats.</h2>
         <p>
           We compared possible predictors of usage: raw strength, role shape, partner strength, and team connectivity.
-          Team degree had the strongest relationship.
+          Connectivity degree showed the strongest relationship with usage.
         </p>
         <div className="bridge-summary" aria-label="Correlation scan summary">
           {summaryMetrics.map((metric) => (
@@ -1369,7 +1371,7 @@ function PokemonAvatar({ pokemon, imageLookup }) {
   );
 }
 
-function DetailPanel({ pokemon, builds, edges, imageLookup }) {
+function DetailPanel({ pokemon, builds, edges, imageLookup, allPokemon }) {
   if (!pokemon) {
     return (
       <aside className="detail-panel" aria-live="polite">
@@ -1400,6 +1402,17 @@ function DetailPanel({ pokemon, builds, edges, imageLookup }) {
         </div>
       </div>
 
+      <RoleCausalityCard selectedPokemon={pokemon} />
+
+      <TeamEcosystemPanel selectedPokemon={pokemon} teammates={teammates} pokemon={allPokemon} edges={edges} />
+
+      <section className="role-evidence">
+        <h4>Competitive role evidence</h4>
+        <p>{roleSummary(pokemon)}</p>
+      </section>
+
+      <EvidenceBarChart rows={evidenceRows} />
+
       <dl className="metric-grid">
         <div>
           <dt>Total stats</dt>
@@ -1418,17 +1431,10 @@ function DetailPanel({ pokemon, builds, edges, imageLookup }) {
           <dd>{formatNumber(pokemon.degree)}</dd>
         </div>
         <div>
-          <dt>Synergy weight</dt>
+          <dt>Teammate footprint</dt>
           <dd>{formatWeighted(pokemon.weightedDegree)}</dd>
         </div>
       </dl>
-
-      <section className="role-evidence">
-        <h4>Competitive role evidence</h4>
-        <p>{roleSummary(pokemon)}</p>
-      </section>
-
-      <EvidenceBarChart rows={evidenceRows} />
     </aside>
   );
 }
@@ -1715,7 +1721,13 @@ export default function App() {
               onSelect={handleSelectName}
             />
           </div>
-          <DetailPanel pokemon={selectedPokemon} builds={data.builds} edges={data.edges} imageLookup={data.imageLookup} />
+          <DetailPanel
+            pokemon={selectedPokemon}
+            builds={data.builds}
+            edges={data.edges}
+            imageLookup={data.imageLookup}
+            allPokemon={enrichedPokemon}
+          />
         </div>
       </section>
 
