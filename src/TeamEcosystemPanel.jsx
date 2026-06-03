@@ -74,9 +74,16 @@ function linkStrength(edges, source, target, fallbackPercent = 0) {
 
 function fallbackCore(selectedPokemon, teammates) {
   if (!selectedPokemon) return null;
+  if (teammates.length < 2) {
+    return {
+      members: [selectedPokemon.Name],
+      interpretation: "No team core evidence available for this Pokémon.",
+    };
+  }
+  const topPartners = teammates.slice(0, 2).map((teammate) => compactName(teammate.name));
   return {
     members: [selectedPokemon.Name, ...teammates.slice(0, 2).map((teammate) => teammate.name)],
-    interpretation: "This team core repeats because the selected Pokémon keeps fitting with the same partners.",
+    interpretation: `${compactName(selectedPokemon.Name)} most often connects with ${topPartners[0]} and ${topPartners[1]} in the teammate network.`,
   };
 }
 

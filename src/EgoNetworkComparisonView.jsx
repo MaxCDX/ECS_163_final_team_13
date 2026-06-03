@@ -41,10 +41,41 @@ function compactName(name = "") {
   return name.replace(" Crowned Sword", "").replace(" Crowned Shield", "");
 }
 
-function truncateName(name = "", maxChars = 18) {
-  const compact = compactName(name);
-  if (compact.length <= maxChars) return compact;
-  return `${compact.slice(0, maxChars - 3).trimEnd()}...`;
+function labelDisplayName(name = "") {
+  const replacements = new Map([
+    ["Zacian Crowned Sword", "Zacian"],
+    ["Zamazenta Crowned Shield", "Zamazenta"],
+    ["Calyrex Shadow Rider", "Calyrex Shadow"],
+    ["Zygarde Complete Forme", "Zygarde Complete"],
+    ["Wishiwashi Solo Form", "Wishiwashi Solo"],
+  ]);
+  return replacements.get(name) || compactName(name);
+}
+
+function splitLabelLines(name = "", maxChars = 16) {
+  const displayName = labelDisplayName(name);
+  if (displayName.length <= maxChars) return [displayName];
+
+  const words = displayName.split(/\s+/).filter(Boolean);
+  if (words.length <= 1) return [displayName];
+
+  let bestSplit = [displayName];
+  let bestScore = Number.POSITIVE_INFINITY;
+  for (let index = 1; index < words.length; index += 1) {
+    const first = words.slice(0, index).join(" ");
+    const second = words.slice(index).join(" ");
+    const score = Math.max(first.length, second.length);
+    if (score < bestScore) {
+      bestScore = score;
+      bestSplit = [first, second];
+    }
+  }
+
+  if (bestSplit.length === 2 && bestSplit[0].length <= maxChars + 2 && bestSplit[1].length <= maxChars + 2) {
+    return bestSplit;
+  }
+
+  return [displayName];
 }
 
 function teammateLayout(index, name) {
@@ -132,7 +163,7 @@ function EgoGraph({ ego, origin, sharedNames, radiusScale, edgeWidthScale }) {
   if (!ego.center) return null;
   const [originX, originY] = origin;
   const centerRadius = radiusScale(usageValue(ego.center)) + 3;
-  const centerLabel = truncateName(ego.center.Name, 18);
+  const centerLabelLines = splitLabelLines(ego.center.Name, 16);
 
   return (
     <g className="ego-mini-network" transform={`translate(${originX},${originY})`}>
@@ -152,13 +183,17 @@ function EgoGraph({ ego, origin, sharedNames, radiusScale, edgeWidthScale }) {
       })}
       <circle className="ego-center-node" cx="0" cy="0" r={centerRadius} fill={typeColor(ego.center.Type1)} />
       <text className="ego-center-label" x="0" y={centerRadius + 18} textAnchor="middle">
-        {centerLabel}
+        {centerLabelLines.map((line, index) => (
+          <tspan key={`${ego.center.Name}-${line}`} x="0" dy={index === 0 ? 0 : 11}>
+            {line}
+          </tspan>
+        ))}
         <title>{ego.center.Name}</title>
       </text>
       {ego.teammates.map((teammate) => {
         const isShared = sharedNames.has(teammate.name);
         const teammateRadius = radiusScale(usageValue(teammate.pokemon));
-        const label = truncateName(teammate.name, teammate.maxLabelChars);
+        const labelLines = splitLabelLines(teammate.name, teammate.maxLabelChars);
         const labelPoint = labelPosition(teammate, teammateRadius);
         return (
           <g className={`ego-teammate-node${isShared ? " is-shared" : " is-unique"}`} key={teammate.name}>
@@ -169,7 +204,11 @@ function EgoGraph({ ego, origin, sharedNames, radiusScale, edgeWidthScale }) {
               fill={isShared ? "#f2b56b" : typeColor(teammate.pokemon?.Type1)}
             />
             <text x={labelPoint.x} y={labelPoint.y} textAnchor={teammate.labelAnchor}>
-              {label}
+              {labelLines.map((line, index) => (
+                <tspan key={`${teammate.name}-${line}`} x={labelPoint.x} dy={index === 0 ? 0 : 10}>
+                  {line}
+                </tspan>
+              ))}
               <title>{teammate.name}</title>
             </text>
           </g>

@@ -136,6 +136,28 @@ const STORY_STEPS = [
     targetId: "exploration-title",
   },
 ];
+const EXPLORATION_MISSIONS = [
+  {
+    id: "another-incineroar",
+    title: "Find another Incineroar",
+    description: "Find a Pokemon with moderate stats but unusually strong teammate footprint.",
+  },
+  {
+    id: "failed-stat-monster",
+    title: "Find a failed stat monster",
+    description: "Find a Pokemon with elite stats that does not dominate usage.",
+  },
+  {
+    id: "support-vs-attacker",
+    title: "Compare support vs attacker",
+    description: "Does a support Pokemon rely on team fit differently from a restricted attacker?",
+  },
+  {
+    id: "test-network-claim",
+    title: "Test the network claim",
+    description: "Switch between Usage, Stats, and Synergy rankings. Do the same Pokemon stay on top?",
+  },
+];
 const ROLE_NOTES = new Map([
   [
     "Incineroar",
@@ -416,7 +438,8 @@ function buildCorrelationScanRows(pokemon) {
 function rankedPickerOptions(pokemon, query, mode) {
   const searchText = query.trim().toLowerCase();
   const hasSearch = searchText.length > 0;
-  const matchingPokemon = hasSearch ? pokemon.filter((d) => d.Name.toLowerCase().includes(searchText)) : pokemon;
+  const eligiblePokemon = pokemon.filter((d) => usageValue(d) > 0 || d.degree > 0 || d.weightedDegree > 0);
+  const matchingPokemon = hasSearch ? eligiblePokemon.filter((d) => d.Name.toLowerCase().includes(searchText)) : eligiblePokemon;
 
   const searchTieBreak = (a, b) => {
     if (!hasSearch) return d3.ascending(a.Name, b.Name);
@@ -964,9 +987,25 @@ function ConnectivityBridge({ pokemon }) {
   );
 }
 
-function PokemonPicker({ pokemon, imageLookup, selectedPokemon, selectedName, onSelect }) {
-  const [query, setQuery] = useState("");
-  const [mode, setMode] = useState("usage");
+function ExplorationMissions({ activeMission, onMissionSelect }) {
+  return (
+    <div className="exploration-missions" aria-label="Guided exploration missions">
+      {EXPLORATION_MISSIONS.map((mission) => (
+        <button
+          key={mission.id}
+          type="button"
+          className={activeMission === mission.id ? "is-active" : ""}
+          onClick={() => onMissionSelect(mission.id)}
+        >
+          <strong>{mission.title}</strong>
+          <span>{mission.description}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PokemonPicker({ pokemon, imageLookup, selectedPokemon, selectedName, query, mode, onQueryChange, onModeChange, onSelect }) {
   const modeInfo = PICKER_MODES.find((item) => item.id === mode) || PICKER_MODES[0];
   const options = useMemo(() => rankedPickerOptions(pokemon, query, mode), [mode, pokemon, query]);
 
@@ -1001,7 +1040,7 @@ function PokemonPicker({ pokemon, imageLookup, selectedPokemon, selectedName, on
             type="search"
             value={query}
             placeholder="Try Incineroar, Kyogre, Mewtwo..."
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => onQueryChange(event.target.value)}
           />
         </label>
 
@@ -1011,7 +1050,7 @@ function PokemonPicker({ pokemon, imageLookup, selectedPokemon, selectedName, on
               className={item.id === mode ? "is-active" : ""}
               key={item.id}
               type="button"
-              onClick={() => setMode(item.id)}
+              onClick={() => onModeChange(item.id)}
             >
               {item.label}
             </button>
@@ -1471,7 +1510,7 @@ function DetailPanel({ pokemon, builds, edges, imageLookup, allPokemon }) {
 
       {activeTab === "role" ? (
         <section aria-labelledby="detail-tab-button-role" className="detail-tab-panel" id="detail-tab-role" role="tabpanel">
-          <RoleCausalityCard selectedPokemon={pokemon} />
+          <RoleCausalityCard selectedPokemon={pokemon} abilities={abilities} moves={moves} items={items} teammates={teammates} />
         </section>
       ) : null}
 
@@ -1579,6 +1618,9 @@ export default function App() {
   const [comparisonName, setComparisonName] = useState("Zacian Crowned Sword");
   const [brushedNames, setBrushedNames] = useState([]);
   const [activeStep, setActiveStep] = useState("reveal");
+  const [pickerQuery, setPickerQuery] = useState("");
+  const [pickerMode, setPickerMode] = useState("usage");
+  const [activeMission, setActiveMission] = useState(null);
   const brushedKeyRef = useRef("");
 
   const enrichedPokemon = useMemo(() => {
@@ -1631,6 +1673,7 @@ export default function App() {
     setSelectedName(name);
     setBrushedNames([]);
     brushedKeyRef.current = "";
+    setActiveMission(null);
     if (options.scrollToNetwork) {
       setActiveStep("reveal");
       window.requestAnimationFrame(() => {
@@ -1655,8 +1698,45 @@ export default function App() {
     setSelectedName(step.selectedName || null);
     setBrushedNames([]);
     brushedKeyRef.current = "";
+    setActiveMission(null);
     window.requestAnimationFrame(() => {
       document.getElementById(step.targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, []);
+
+  const handleMissionSelect = useCallback((missionId) => {
+    setActiveMission(missionId);
+    setActiveStep("explore");
+    setBrushedNames([]);
+    brushedKeyRef.current = "";
+
+    if (missionId === "another-incineroar") {
+      setPickerQuery("");
+      setPickerMode("usage");
+      setSelectedName("Amoonguss");
+      return;
+    }
+
+    if (missionId === "failed-stat-monster") {
+      setPickerQuery("");
+      setPickerMode("stats");
+      setSelectedName("Zamazenta Crowned Shield");
+      return;
+    }
+
+    if (missionId === "support-vs-attacker") {
+      setPickerQuery("");
+      setPickerMode("usage");
+      setSelectedName("Incineroar");
+      setComparisonName("Zacian Crowned Sword");
+      return;
+    }
+
+    setPickerQuery("");
+    setPickerMode("usage");
+    window.requestAnimationFrame(() => {
+      document.querySelector(".picker-mode-row button.is-active")?.focus();
+      document.querySelector(".pokemon-picker-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }, []);
 
@@ -1823,11 +1903,16 @@ export default function App() {
           Look for Pokémon that are not statistical giants, but still sit near the center of the team network. Those are
           the strongest evidence that competitive value is built through synergy.
         </p>
+        <ExplorationMissions activeMission={activeMission} onMissionSelect={handleMissionSelect} />
         <PokemonPicker
           pokemon={enrichedPokemon}
           imageLookup={data.imageLookup}
           selectedPokemon={selectedPokemon}
           selectedName={selectedName}
+          query={pickerQuery}
+          mode={pickerMode}
+          onQueryChange={setPickerQuery}
+          onModeChange={setPickerMode}
           onSelect={(name) => handleSelectName(name, { scrollToNetwork: true })}
         />
       </section>

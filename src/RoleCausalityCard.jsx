@@ -47,14 +47,57 @@ function roleCausalityFor(pokemon) {
   return ROLE_CAUSALITY_EXPLANATIONS.get(pokemon.Name) || null;
 }
 
-function flowNodes(explanation) {
-  if (!explanation) {
+function usageValue(pokemon) {
+  if (Number.isFinite(pokemon?.usagePercent)) return pokemon.usagePercent;
+  if (typeof pokemon?.usagePercent === "string") {
+    const parsed = Number.parseFloat(pokemon.usagePercent.replace("%", "").trim());
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+function compactEvidenceLabel(label = "", maxLength = 20) {
+  if (label.length <= maxLength) return label;
+  return `${label.slice(0, maxLength - 3).trimEnd()}...`;
+}
+
+function fallbackRoleFlow({ selectedPokemon, abilities = [], moves = [], items = [], teammates = [] }) {
+  if (!selectedPokemon) return null;
+
+  const steps = [];
+  const topAbility = abilities[0];
+  const topMove = moves[0];
+  const topTeammate = teammates[0];
+  const topItem = items[0];
+
+  if (topAbility?.name) steps.push([compactEvidenceLabel(topAbility.name), "Common ability"]);
+  if (topMove?.name) steps.push([compactEvidenceLabel(topMove.name), "Common move"]);
+  if (topTeammate?.name) {
+    steps.push([compactEvidenceLabel(topTeammate.name), "Frequent teammate"]);
+  } else if (topItem?.name) {
+    steps.push([compactEvidenceLabel(topItem.name), "Common item"]);
+  }
+
+  if (steps.length < 2) {
     return {
-      nodes: [{ label: "Role explanation", detail: "coming soon", kind: "outcome" }],
-      height: 58,
+      steps: [],
+      outcome: "No role evidence available for this Pokémon.",
     };
   }
 
+  const outcome =
+    usageValue(selectedPokemon) === 0
+      ? "Strong stats, limited demand"
+      : (selectedPokemon.weightedDegree || 0) > (selectedPokemon.Total || 0)
+        ? "Team fit drives value"
+        : (selectedPokemon.degree || 0) > 50
+          ? "Strong network presence"
+          : "Competitive role signal";
+
+  return { steps, outcome };
+}
+
+function flowNodes(explanation) {
   const nodes = [
     ...explanation.steps.map(([label, detail]) => ({ label, detail, kind: "step" })),
     { label: "Outcome", detail: explanation.outcome, kind: "outcome" },
@@ -69,8 +112,8 @@ function nodeY(index, isOutcome) {
   return NODE_START_Y + index * (NODE_HEIGHT + NODE_GAP) + (isOutcome ? OUTCOME_GAP - NODE_GAP : 0);
 }
 
-export default function RoleCausalityCard({ selectedPokemon }) {
-  const explanation = roleCausalityFor(selectedPokemon);
+export default function RoleCausalityCard({ selectedPokemon, abilities = [], moves = [], items = [], teammates = [] }) {
+  const explanation = roleCausalityFor(selectedPokemon) || fallbackRoleFlow({ selectedPokemon, abilities, moves, items, teammates });
   const { nodes, height } = flowNodes(explanation);
 
   return (
