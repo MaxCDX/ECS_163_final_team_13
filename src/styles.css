@@ -257,7 +257,7 @@ p {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1px;
-  margin: -1px 0 22px;
+  margin: -1px 0 14px;
   border: 1px solid rgba(242, 244, 241, 0.12);
   border-radius: 8px;
   background: rgba(242, 244, 241, 0.12);
@@ -268,10 +268,10 @@ p {
 .story-stepper button {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 3px 10px;
-  min-height: 74px;
+  gap: 2px 9px;
+  min-height: 50px;
   border: 0;
-  padding: 13px 14px;
+  padding: 7px 11px;
   background: rgba(16, 19, 22, 0.92);
   color: inherit;
   cursor: pointer;
@@ -293,22 +293,22 @@ p {
 .story-stepper span {
   grid-row: 1 / span 2;
   color: #e25f4d;
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   font-weight: 900;
 }
 
 .story-stepper strong {
   overflow-wrap: anywhere;
   color: #f7f3ea;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   line-height: 1.15;
 }
 
 .story-stepper small {
   color: #9da8a5;
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   font-weight: 720;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .story-stepper button.is-active small {
@@ -846,9 +846,9 @@ p {
 
 .network-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 24px;
-  align-items: stretch;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
 }
 
 .network-panel {
@@ -981,7 +981,7 @@ p {
 }
 
 .network-graph {
-  min-height: 560px;
+  min-height: 420px;
   overflow: hidden;
   border: 1px solid rgba(242, 244, 241, 0.1);
   border-radius: 8px;
@@ -992,11 +992,250 @@ p {
   background-size: 34px 34px;
 }
 
-.detail-panel {
-  min-height: 560px;
+.ego-comparison-view {
+  width: min(100%, 980px);
   border: 1px solid rgba(242, 244, 241, 0.12);
   border-radius: 8px;
-  padding: 20px;
+  padding: 8px;
+  background: #151b20;
+  justify-self: center;
+}
+
+.ego-comparison-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 5px;
+}
+
+.ego-comparison-header h3 {
+  margin: 2px 0 0;
+  color: #f7f3ea;
+  font-size: 1.05rem;
+  line-height: 1.18;
+}
+
+.ego-comparison-selector {
+  display: grid;
+  min-width: 210px;
+  gap: 4px;
+  color: #aeb8b5;
+  font-size: 0.78rem;
+  font-weight: 780;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ego-comparison-selector select {
+  height: 30px;
+  border: 1px solid rgba(242, 244, 241, 0.18);
+  border-radius: 6px;
+  padding: 0 10px;
+  background: #10161a;
+  color: #f2f4f1;
+  font: inherit;
+  font-size: 0.88rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.ego-comparison-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  margin: -2px 0 5px;
+  color: #aeb8b5;
+  font-size: 0.68rem;
+  font-weight: 760;
+}
+
+.ego-comparison-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 16px;
+  white-space: nowrap;
+}
+
+.legend-sample {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+.legend-shared,
+.legend-unique,
+.legend-width {
+  width: 24px;
+  height: 0;
+  border-top: 2px solid #f2b56b;
+  border-radius: 999px;
+}
+
+.legend-shared::after,
+.legend-unique::after {
+  position: absolute;
+  top: -5px;
+  right: 1px;
+  width: 8px;
+  height: 8px;
+  content: "";
+  border-radius: 999px;
+  background: #f2b56b;
+  box-shadow: 0 0 0 1px rgba(247, 243, 234, 0.55);
+}
+
+.legend-unique {
+  border-color: rgba(127, 143, 154, 0.52);
+}
+
+.legend-unique::after {
+  background: #6f7f89;
+  opacity: 0.72;
+}
+
+.legend-size {
+  width: 27px;
+  height: 13px;
+}
+
+.legend-size::before,
+.legend-size::after {
+  position: absolute;
+  bottom: 1px;
+  content: "";
+  border-radius: 999px;
+  background: #e25f4d;
+  box-shadow: 0 0 0 1px rgba(247, 243, 234, 0.44);
+}
+
+.legend-size::before {
+  left: 1px;
+  width: 7px;
+  height: 7px;
+}
+
+.legend-size::after {
+  right: 1px;
+  width: 12px;
+  height: 12px;
+}
+
+.legend-width {
+  border-top-width: 5px;
+  border-color: rgba(174, 184, 181, 0.84);
+}
+
+.ego-comparison-svg {
+  display: block;
+  width: 100%;
+  height: 300px;
+  overflow: visible;
+  border: 1px solid rgba(242, 244, 241, 0.08);
+  border-radius: 6px;
+  background:
+    radial-gradient(circle at 50% 32%, rgba(226, 95, 77, 0.08), transparent 28%),
+    #11171b;
+}
+
+.ego-column-title,
+.ego-center-label,
+.ego-teammate-node text,
+.ego-metric-label,
+.ego-metric-value,
+.ego-insight {
+  fill: #f2f4f1;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.ego-column-title {
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.ego-mini-network line {
+  stroke-linecap: round;
+}
+
+.ego-mini-network line.is-shared {
+  stroke: #f2b56b;
+  opacity: 0.9;
+}
+
+.ego-mini-network line.is-unique {
+  stroke: #7f8f9a;
+  opacity: 0.42;
+}
+
+.ego-center-node {
+  stroke: #f7f3ea;
+  stroke-width: 3px;
+  filter: drop-shadow(0 0 9px rgba(226, 95, 77, 0.45));
+}
+
+.ego-center-label {
+  font-size: 12px;
+  font-weight: 850;
+  paint-order: stroke;
+  stroke: rgba(17, 23, 27, 0.92);
+  stroke-width: 3px;
+}
+
+.ego-teammate-node circle {
+  stroke: rgba(247, 243, 234, 0.72);
+  stroke-width: 1.2px;
+}
+
+.ego-teammate-node.is-unique circle {
+  opacity: 0.72;
+}
+
+.ego-teammate-node text {
+  fill: #cfd7d3;
+  font-size: 10px;
+  font-weight: 760;
+  paint-order: stroke;
+  stroke: rgba(17, 23, 27, 0.92);
+  stroke-width: 3px;
+}
+
+.ego-metric-label {
+  fill: #aeb8b5;
+  font-size: 10px;
+  font-weight: 820;
+}
+
+.ego-metric-track {
+  fill: rgba(242, 244, 241, 0.08);
+}
+
+.ego-metric-bar.is-a {
+  fill: #e25f4d;
+}
+
+.ego-metric-bar.is-b {
+  fill: #7fb3d8;
+}
+
+.ego-metric-value {
+  fill: #e4ded2;
+  font-size: 10px;
+  font-weight: 780;
+}
+
+.ego-insight {
+  fill: #f2b56b;
+  font-size: 12px;
+  font-weight: 820;
+}
+
+.detail-panel {
+  min-height: 340px;
+  border: 1px solid rgba(242, 244, 241, 0.12);
+  border-radius: 8px;
+  padding: 16px;
   background: #161b20;
 }
 
@@ -1006,16 +1245,16 @@ p {
 
 .pokemon-heading {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   align-items: center;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 
 .pokemon-avatar {
   position: relative;
   display: grid;
-  width: 76px;
-  height: 76px;
+  width: 62px;
+  height: 62px;
   border-radius: 8px;
   place-items: center;
   background: color-mix(in srgb, var(--type-color) 18%, #20262c 82%);
@@ -1039,7 +1278,7 @@ p {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: 8px;
+  padding: 7px;
   opacity: 0;
 }
 
@@ -1064,7 +1303,7 @@ p {
 }
 
 .role-causality-card {
-  margin: -4px 0 16px;
+  margin: 0;
   border: 1px solid rgba(124, 190, 255, 0.24);
   border-radius: 8px;
   padding: 12px;
@@ -1081,8 +1320,9 @@ p {
 
 .role-flow-diagram {
   display: block;
-  width: 100%;
+  width: min(100%, 360px);
   height: auto;
+  margin: 0 auto;
   border: 1px solid rgba(242, 244, 241, 0.08);
   border-radius: 6px;
   background:
@@ -1138,7 +1378,7 @@ p {
 }
 
 .team-ecosystem-panel {
-  margin: 0 0 16px;
+  margin: 0;
   border: 1px solid rgba(126, 217, 164, 0.22);
   border-radius: 8px;
   padding: 12px;
@@ -1155,8 +1395,9 @@ p {
 
 .ecosystem-graph {
   display: block;
-  width: 100%;
+  width: min(100%, 380px);
   height: auto;
+  margin: 0 auto;
   border: 1px solid rgba(242, 244, 241, 0.08);
   border-radius: 6px;
   background:
@@ -1193,45 +1434,87 @@ p {
 }
 
 .ecosystem-interpretation {
-  margin: 9px 0 0;
+  max-width: 520px;
+  margin: 9px auto 0;
   color: #d8ded9;
   font-size: 0.84rem;
   line-height: 1.38;
 }
 
-.metric-grid {
+.metric-strip {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin: 16px 0 0;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0 0 12px;
 }
 
-.metric-grid div {
+.metric-strip div {
   border: 1px solid rgba(242, 244, 241, 0.1);
   border-radius: 6px;
-  padding: 10px;
+  padding: 7px 8px;
   background: rgba(255, 255, 255, 0.035);
 }
 
-.metric-grid dt {
+.metric-strip dt {
   color: #9aa5a2;
-  font-size: 0.72rem;
+  font-size: 0.63rem;
   font-weight: 800;
+  line-height: 1.05;
   text-transform: uppercase;
 }
 
-.metric-grid dd {
-  margin: 4px 0 0;
+.metric-strip dd {
+  margin: 3px 0 0;
   color: #f2f4f1;
-  font-size: 1.08rem;
+  font-size: 0.88rem;
   font-weight: 850;
+  line-height: 1.1;
+}
+
+.detail-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 12px;
+  border-bottom: 1px solid rgba(242, 244, 241, 0.1);
+}
+
+.detail-tabs button {
+  min-height: 32px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 0 10px 2px;
+  background: transparent;
+  color: #9aa5a2;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 820;
+  cursor: pointer;
+}
+
+.detail-tabs button:hover,
+.detail-tabs button:focus-visible {
+  color: #f2f4f1;
+}
+
+.detail-tabs button:focus-visible {
+  outline: 2px solid #f2b56b;
+  outline-offset: -2px;
+}
+
+.detail-tabs button.is-active {
+  border-color: #e25f4d;
+  color: #f7f3ea;
+}
+
+.detail-tab-panel {
+  min-width: 0;
 }
 
 .role-evidence {
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   border: 1px solid rgba(242, 181, 107, 0.28);
   border-radius: 8px;
-  padding: 12px;
+  padding: 10px 12px;
   background: rgba(242, 181, 107, 0.075);
 }
 
@@ -1243,17 +1526,21 @@ p {
 .role-evidence p {
   margin-bottom: 0;
   color: #d8ded9;
-  font-size: 0.9rem;
-  line-height: 1.52;
+  font-size: 0.84rem;
+  line-height: 1.42;
 }
 
 .evidence-chart-section {
   border-top: 1px solid rgba(242, 244, 241, 0.1);
-  padding-top: 14px;
+  padding-top: 10px;
+}
+
+.evidence-chart-section h4 {
+  margin-bottom: 6px;
 }
 
 .evidence-chart {
-  min-height: 190px;
+  min-height: 150px;
 }
 
 .evidence-track {
@@ -1606,9 +1893,20 @@ p {
     padding: 22px 14px;
   }
 
-  .network-graph,
+  .network-graph {
+    min-height: 420px;
+  }
+
   .detail-panel {
-    min-height: 480px;
+    min-height: 340px;
+  }
+
+  .metric-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .ego-comparison-svg {
+    height: auto;
   }
 
   .picker-results button {
@@ -1730,7 +2028,7 @@ p {
   }
 
   .story-stepper button {
-    min-height: 58px;
+    min-height: 50px;
   }
 
   .connectivity-bridge {
@@ -1748,5 +2046,9 @@ p {
 
   .network-toolbar {
     align-items: flex-start;
+  }
+
+  .metric-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

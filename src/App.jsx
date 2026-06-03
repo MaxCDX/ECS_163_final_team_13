@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
+import EgoNetworkComparisonView from "./EgoNetworkComparisonView.jsx";
 import RoleCausalityCard from "./RoleCausalityCard.jsx";
 import TeamEcosystemPanel from "./TeamEcosystemPanel.jsx";
 
@@ -27,6 +28,11 @@ const PICKER_MODES = [
   { id: "usage", label: "Usage", metricLabel: "Usage" },
   { id: "stats", label: "Stats", metricLabel: "Base stats" },
   { id: "synergy", label: "Synergy", metricLabel: "Teammate footprint" },
+];
+const DETAIL_TABS = [
+  { id: "evidence", label: "Evidence" },
+  { id: "role", label: "Role" },
+  { id: "team", label: "Team Core" },
 ];
 const LOCAL_IMAGE_PATHS = new Map([
   ["Incineroar", "/assets/pokemon/incineroar.png"],
@@ -1093,7 +1099,7 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
 
     if (simulationRef.current) simulationRef.current.stop();
 
-    const height = Math.max(560, Math.min(720, width * 0.72));
+    const height = Math.max(380, Math.min(440, width * 0.38));
     const root = d3.select(containerRef.current);
     root.selectAll("*").remove();
     setTooltip(null);
@@ -1183,18 +1189,18 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
         d3
           .forceLink(graphLinks)
           .id((d) => d.Name)
-          .distance((d) => 142 - Math.min(72, d.coUsagePercent))
+          .distance((d) => 112 - Math.min(52, d.coUsagePercent))
           .strength(0.42),
       )
-      .force("charge", d3.forceManyBody().strength(-260))
+      .force("charge", d3.forceManyBody().strength(-205))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide((d) => radius(usageValue(d)) + 10))
-      .force("x", d3.forceX(width / 2).strength(0.05))
-      .force("y", d3.forceY(height / 2).strength(0.06))
+      .force("collision", d3.forceCollide((d) => radius(usageValue(d)) + 6))
+      .force("x", d3.forceX(width / 2).strength(0.085))
+      .force("y", d3.forceY(height / 2).strength(0.1))
       .on("tick", () => {
         graphNodes.forEach((d) => {
-          d.x = Math.max(34, Math.min(width - 34, d.x));
-          d.y = Math.max(34, Math.min(height - 34, d.y));
+          d.x = Math.max(24, Math.min(width - 24, d.x));
+          d.y = Math.max(24, Math.min(height - 24, d.y));
         });
 
         link
@@ -1372,6 +1378,12 @@ function PokemonAvatar({ pokemon, imageLookup }) {
 }
 
 function DetailPanel({ pokemon, builds, edges, imageLookup, allPokemon }) {
+  const [activeTab, setActiveTab] = useState("evidence");
+
+  useEffect(() => {
+    setActiveTab("evidence");
+  }, [pokemon?.Name]);
+
   if (!pokemon) {
     return (
       <aside className="detail-panel" aria-live="polite">
@@ -1402,18 +1414,7 @@ function DetailPanel({ pokemon, builds, edges, imageLookup, allPokemon }) {
         </div>
       </div>
 
-      <RoleCausalityCard selectedPokemon={pokemon} />
-
-      <TeamEcosystemPanel selectedPokemon={pokemon} teammates={teammates} pokemon={allPokemon} edges={edges} />
-
-      <section className="role-evidence">
-        <h4>Competitive role evidence</h4>
-        <p>{roleSummary(pokemon)}</p>
-      </section>
-
-      <EvidenceBarChart rows={evidenceRows} />
-
-      <dl className="metric-grid">
+      <dl className="metric-strip" aria-label="Selected Pokémon metrics">
         <div>
           <dt>Total stats</dt>
           <dd>{formatNumber(pokemon.Total)}</dd>
@@ -1435,6 +1436,50 @@ function DetailPanel({ pokemon, builds, edges, imageLookup, allPokemon }) {
           <dd>{formatWeighted(pokemon.weightedDegree)}</dd>
         </div>
       </dl>
+
+      <div className="detail-tabs" role="tablist" aria-label="Selected Pokémon detail sections">
+        {DETAIL_TABS.map((tab) => (
+          <button
+            aria-controls={`detail-tab-${tab.id}`}
+            aria-selected={activeTab === tab.id}
+            className={activeTab === tab.id ? "is-active" : ""}
+            id={`detail-tab-button-${tab.id}`}
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            role="tab"
+            type="button"
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "evidence" ? (
+        <section
+          aria-labelledby="detail-tab-button-evidence"
+          className="detail-tab-panel is-evidence"
+          id="detail-tab-evidence"
+          role="tabpanel"
+        >
+          <section className="role-evidence">
+            <h4>Competitive role evidence</h4>
+            <p>{roleSummary(pokemon)}</p>
+          </section>
+          <EvidenceBarChart rows={evidenceRows} />
+        </section>
+      ) : null}
+
+      {activeTab === "role" ? (
+        <section aria-labelledby="detail-tab-button-role" className="detail-tab-panel" id="detail-tab-role" role="tabpanel">
+          <RoleCausalityCard selectedPokemon={pokemon} />
+        </section>
+      ) : null}
+
+      {activeTab === "team" ? (
+        <section aria-labelledby="detail-tab-button-team" className="detail-tab-panel" id="detail-tab-team" role="tabpanel">
+          <TeamEcosystemPanel selectedPokemon={pokemon} teammates={teammates} pokemon={allPokemon} edges={edges} />
+        </section>
+      ) : null}
     </aside>
   );
 }
@@ -1445,8 +1490,8 @@ function EvidenceBarChart({ rows }) {
   useEffect(() => {
     if (!width || !rows.length) return undefined;
 
-    const rowHeight = 28;
-    const margin = { top: 10, right: 42, bottom: 8, left: 78 };
+    const rowHeight = 24;
+    const margin = { top: 8, right: 42, bottom: 6, left: 76 };
     const height = margin.top + margin.bottom + rows.length * rowHeight;
     const root = d3.select(containerRef.current);
     root.selectAll("*").remove();
@@ -1531,6 +1576,7 @@ function EvidenceBarChart({ rows }) {
 export default function App() {
   const { data, error } = usePokemonData();
   const [selectedName, setSelectedName] = useState("Incineroar");
+  const [comparisonName, setComparisonName] = useState("Zacian Crowned Sword");
   const [brushedNames, setBrushedNames] = useState([]);
   const [activeStep, setActiveStep] = useState("reveal");
   const brushedKeyRef = useRef("");
@@ -1549,6 +1595,37 @@ export default function App() {
     () => enrichedPokemon.find((d) => d.Name === selectedName) || null,
     [enrichedPokemon, selectedName],
   );
+
+  const comparisonPokemon = useMemo(
+    () => {
+      const directMatch = enrichedPokemon.find((d) => d.Name === comparisonName) || null;
+      if (!selectedPokemon || directMatch?.Name !== selectedPokemon.Name) return directMatch;
+      return (
+        enrichedPokemon
+          .filter((pokemon) => pokemon.Name !== selectedPokemon.Name && pokemon.hasUsageData && usageValue(pokemon) > 0)
+          .sort((a, b) => d3.descending(usageValue(a), usageValue(b)))[0] ||
+        enrichedPokemon.find((pokemon) => pokemon.Name !== selectedPokemon.Name) ||
+        null
+      );
+    },
+    [comparisonName, enrichedPokemon, selectedPokemon],
+  );
+
+  useEffect(() => {
+    if (!selectedPokemon || !enrichedPokemon.length) return;
+    const comparisonIsValid =
+      comparisonName &&
+      comparisonName !== selectedPokemon.Name &&
+      enrichedPokemon.some((pokemon) => pokemon.Name === comparisonName);
+    if (comparisonIsValid) return;
+
+    const fallback =
+      enrichedPokemon
+        .filter((pokemon) => pokemon.Name !== selectedPokemon.Name && pokemon.hasUsageData && usageValue(pokemon) > 0)
+        .sort((a, b) => d3.descending(usageValue(a), usageValue(b)))[0] ||
+      enrichedPokemon.find((pokemon) => pokemon.Name !== selectedPokemon.Name);
+    if (fallback) setComparisonName(fallback.Name);
+  }, [comparisonName, enrichedPokemon, selectedPokemon]);
 
   const handleSelectName = useCallback((name, options = {}) => {
     setSelectedName(name);
@@ -1721,6 +1798,14 @@ export default function App() {
               onSelect={handleSelectName}
             />
           </div>
+          <EgoNetworkComparisonView
+            selectedPokemon={selectedPokemon}
+            comparisonPokemon={comparisonPokemon}
+            pokemon={enrichedPokemon}
+            edges={data.edges}
+            comparisonName={comparisonPokemon?.Name || comparisonName}
+            onComparisonChange={setComparisonName}
+          />
           <DetailPanel
             pokemon={selectedPokemon}
             builds={data.builds}

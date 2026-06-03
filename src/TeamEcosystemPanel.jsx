@@ -1,3 +1,5 @@
+import * as d3 from "d3";
+
 const TYPE_COLORS = new Map([
   ["Normal", "#a9a78f"],
   ["Fire", "#d85f3f"],
@@ -61,11 +63,6 @@ function usageValue(pokemon) {
   return Number.isFinite(pokemon?.usagePercent) ? pokemon.usagePercent : 0;
 }
 
-function radiusFor(pokemon, selected) {
-  const radius = 10 + Math.min(usageValue(pokemon), 70) / 70 * 8;
-  return selected ? radius + 3 : radius;
-}
-
 function linkStrength(edges, source, target, fallbackPercent = 0) {
   const edge = edges.find(
     (item) =>
@@ -73,10 +70,6 @@ function linkStrength(edges, source, target, fallbackPercent = 0) {
       (item.source === target && item.target === source),
   );
   return Number.isFinite(edge?.coUsagePercent) ? edge.coUsagePercent : fallbackPercent;
-}
-
-function strokeWidthFor(value) {
-  return 1.5 + Math.min(Math.max(value, 0), 100) / 100 * 6;
 }
 
 function fallbackCore(selectedPokemon, teammates) {
@@ -123,6 +116,16 @@ export default function TeamEcosystemPanel({ selectedPokemon, teammates = [], po
       };
     });
 
+  // Node size encodes usage; edge width encodes teammate co-usage strength.
+  const nodeRadius = d3
+    .scaleSqrt()
+    .domain([0, Math.max(70, d3.max(nodes, (node) => usageValue(node.pokemon)) || 0)])
+    .range([8, 18]);
+  const edgeWidth = d3
+    .scaleLinear()
+    .domain([0, Math.max(100, d3.max(links, (link) => link.strength) || 0)])
+    .range([1.5, 7.5]);
+
   return (
     <section className="team-ecosystem-panel" aria-label="Team core visualization">
       <h4>Why this team core works</h4>
@@ -135,7 +138,7 @@ export default function TeamEcosystemPanel({ selectedPokemon, teammates = [], po
               y1={link.source.y}
               x2={link.target.x}
               y2={link.target.y}
-              strokeWidth={strokeWidthFor(link.strength)}
+              strokeWidth={edgeWidth(link.strength)}
               strokeDasharray={link.strength ? undefined : "4 5"}
             />
           ))}
@@ -146,7 +149,7 @@ export default function TeamEcosystemPanel({ selectedPokemon, teammates = [], po
               <circle
                 cx={node.x}
                 cy={node.y}
-                r={radiusFor(node.pokemon, node.selected)}
+                r={Math.max(10, nodeRadius(usageValue(node.pokemon))) + (node.selected ? 3 : 0)}
                 fill={typeColor(node.pokemon?.Type1)}
               />
               <text x={node.x + node.labelDx} y={node.y + node.labelDy} textAnchor={node.labelAnchor}>
