@@ -1015,16 +1015,19 @@ function ConnectivityBridge({ pokemon }) {
   const rows = useMemo(() => buildCorrelationScanRows(pokemon), [pokemon]);
   const winner = rows.find((row) => row.isWinner);
   const statsRow = rows.find((row) => row.id === "stats");
+  const connectivityValue = winner?.value || STORY_CONNECTIVITY_USAGE_CORRELATION;
+  const statsValue = statsRow?.value || STORY_STATS_USAGE_CORRELATION;
+  const strengthRatio = connectivityValue / statsValue;
   const summaryMetrics = [
     {
       label: "Total stats",
-      value: statsRow?.value || STORY_STATS_USAGE_CORRELATION,
+      value: statsValue,
       note: "Weak signal",
       tone: "baseline",
     },
     {
       label: "Connectivity degree",
-      value: winner?.value || STORY_CONNECTIVITY_USAGE_CORRELATION,
+      value: connectivityValue,
       note: "Best signal",
       tone: "winner",
     },
@@ -1062,6 +1065,15 @@ function ConnectivityBridge({ pokemon }) {
       <div className="correlation-scan-panel">
         <CorrelationScanChart rows={rows} />
         <CorrelationScanLegend />
+        <aside className="correlation-interpretation" aria-label="Signal scan interpretation">
+          <h3>What does this mean?</h3>
+          <p>A Pokémon's network position explains usage far better than raw power.</p>
+          <p>
+            Connectivity (r = {formatCorrelation(connectivityValue)}) is nearly {d3.format(".0f")(strengthRatio)} times
+            stronger than total stats (r = {formatCorrelation(statsValue)}), suggesting that successful Pokémon are
+            often defined by who they work with.
+          </p>
+        </aside>
       </div>
     </section>
   );
