@@ -170,6 +170,7 @@ const EXPLORATION_MISSION_INSIGHTS = new Map([
         "Like Incineroar, its value comes from repeated team connections rather than elite base stats.",
         "This supports the claim that team fit can outweigh raw power.",
       ],
+      nextStep: "Open the Role tab below to see how support value creates usage.",
     },
   ],
   [
@@ -182,6 +183,7 @@ const EXPLORATION_MISSION_INSIGHTS = new Map([
         "Zamazenta's raw stats are among the highest in the dataset, yet its usage remains near the bottom.",
         "This demonstrates that power alone does not guarantee competitive success.",
       ],
+      nextStep: "Compare Stats and Synergy rankings to see why raw power is not enough.",
     },
   ],
   [
@@ -196,6 +198,7 @@ const EXPLORATION_MISSION_INSIGHTS = new Map([
         "Incineroar reaches similar network importance through positioning, support, and repeated teammate value.",
         "Competitive value can come from team fit as well as individual power.",
       ],
+      nextStep: "Inspect Team Core to see which teammates reinforce Zacian's success.",
     },
   ],
   [
@@ -208,6 +211,7 @@ const EXPLORATION_MISSION_INSIGHTS = new Map([
         "A Pokémon can rank highly in Synergy while sitting far lower in raw Stats.",
         "The difference reveals value that is visible in network position but missed by base stat total.",
       ],
+      nextStep: "Open the Evidence tab to connect ranking differences to build and teammate signals.",
     },
   ],
 ]);
@@ -1189,6 +1193,9 @@ function MissionInsightCard({ activeMission, pokemon }) {
         ))}
         <strong>Competitive value emerges from team fit and network position, not only raw stats.</strong>
       </div>
+      <p className="mission-next-step">
+        <strong>Next step:</strong> {insight.nextStep}
+      </p>
     </section>
   );
 }
