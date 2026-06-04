@@ -1068,6 +1068,33 @@ p {
   margin-bottom: 18px;
 }
 
+.network-intro-explanation {
+  border-left: 2px solid #e25f4d;
+  padding-left: 13px;
+}
+
+.network-intro-explanation h3 {
+  margin-bottom: 6px;
+  color: #fff6df;
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.network-intro-explanation p {
+  margin-bottom: 7px;
+  color: #c5ceca;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.network-intro-explanation small {
+  display: block;
+  color: #8f9a97;
+  font-size: 0.72rem;
+  font-weight: 760;
+  line-height: 1.4;
+}
+
 .network-section > .story-callouts {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: 0 0 28px;

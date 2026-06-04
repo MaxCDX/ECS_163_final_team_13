@@ -2074,10 +2074,16 @@ export default function App() {
             <p className="section-label">Team synergy network</p>
             <h2 id="network-title">Competitive success emerges from synergy.</h2>
           </div>
-          <p>
-            Each node is a Pokémon. Larger nodes are used more often. Edges show common teammates, and thicker edges mean
-            stronger co-usage.
-          </p>
+          <aside className="network-intro-explanation" aria-label="Why look at a network">
+            <h3>Why look at a network?</h3>
+            <p>
+              If competitive success depends on team fit, important Pokémon should appear near many useful teammates.
+              The network reveals these relationships directly.
+            </p>
+            <small>
+              Larger nodes are used more often. Thicker edges show stronger teammate co-usage.
+            </small>
+          </aside>
         </div>
         <StoryCallouts
           items={[
