@@ -163,28 +163,51 @@ const EXPLORATION_MISSION_INSIGHTS = new Map([
     "another-incineroar",
     {
       title: "Another Incineroar Found",
-      text: "Amoonguss succeeds with moderate raw stats but strong teammate connectivity, supporting the idea that team fit can outweigh raw power.",
+      subjectName: "Amoonguss",
+      conclusion: "Amoonguss succeeds with moderate raw stats but strong teammate connectivity.",
+      whyItMatters: [
+        "Amoonguss ranks much higher in Synergy than in raw Stats.",
+        "Like Incineroar, its value comes from repeated team connections rather than elite base stats.",
+        "This supports the claim that team fit can outweigh raw power.",
+      ],
     },
   ],
   [
     "failed-stat-monster",
     {
       title: "Failed Stat Monster",
-      text: "Zamazenta has elite raw stats but very low competitive adoption, showing that power alone does not guarantee success.",
+      subjectName: "Zamazenta Crowned Shield",
+      conclusion: "Zamazenta has elite raw stats but very low competitive adoption.",
+      whyItMatters: [
+        "Zamazenta's raw stats are among the highest in the dataset, yet its usage remains near the bottom.",
+        "This demonstrates that power alone does not guarantee competitive success.",
+      ],
     },
   ],
   [
     "support-vs-attacker",
     {
       title: "Different Paths to Success",
-      text: "Zacian succeeds through raw offensive pressure, while Incineroar succeeds through positioning, support, and teammate value.",
+      subjectName: "Incineroar",
+      comparisonName: "Zacian Crowned Sword",
+      conclusion: "Zacian and Incineroar reach high usage through different competitive roles.",
+      whyItMatters: [
+        "Zacian combines elite raw stats with direct offensive pressure.",
+        "Incineroar reaches similar network importance through positioning, support, and repeated teammate value.",
+        "Competitive value can come from team fit as well as individual power.",
+      ],
     },
   ],
   [
     "test-network-claim",
     {
       title: "Compare the Rankings",
-      text: "Switch between Usage, Stats, and Synergy rankings. If the leaders change, network position may reveal value that raw stats miss.",
+      subjectName: "Incineroar",
+      conclusion: "Usage, Stats, and Synergy rankings do not reward the same Pokémon.",
+      whyItMatters: [
+        "A Pokémon can rank highly in Synergy while sitting far lower in raw Stats.",
+        "The difference reveals value that is visible in network position but missed by base stat total.",
+      ],
     },
   ],
 ]);
@@ -1058,14 +1081,101 @@ function ExplorationMissions({ activeMission, onMissionSelect }) {
   );
 }
 
-function MissionInsightCard({ activeMission }) {
+function missionRank(pokemon, name, mode) {
+  const ranked = rankedPickerOptions(pokemon, "", mode);
+  const index = ranked.findIndex((item) => item.Name === name);
+  if (index >= 0) return index + 1;
+
+  const allRanked = pokemon
+    .filter((item) => {
+      if (mode === "stats") return Number.isFinite(item.Total);
+      if (mode === "synergy") return item.weightedDegree > 0;
+      return item.hasUsageData;
+    })
+    .sort((a, b) => {
+      if (mode === "stats") return d3.descending(a.Total, b.Total);
+      if (mode === "synergy") return d3.descending(a.weightedDegree, b.weightedDegree);
+      return d3.descending(usageValue(a), usageValue(b));
+    });
+
+  const allIndex = allRanked.findIndex((item) => item.Name === name);
+  return allIndex >= 0 ? allIndex + 1 : null;
+}
+
+function missionEvidence(insight, pokemon) {
+  const subject = pokemon.find((item) => item.Name === insight.subjectName);
+  const comparison = pokemon.find((item) => item.Name === insight.comparisonName);
+  if (!subject) return [];
+
+  if (insight.subjectName === "Amoonguss") {
+    return [
+      `Base stats: ${formatNumber(subject.Total)}`,
+      `Stats rank: #${missionRank(pokemon, subject.Name, "stats")}`,
+      `Synergy rank: #${missionRank(pokemon, subject.Name, "synergy")}`,
+      `Team partners: ${formatNumber(subject.degree)}`,
+    ];
+  }
+
+  if (insight.subjectName === "Zamazenta Crowned Shield") {
+    return [
+      `Base stats: ${formatNumber(subject.Total)}`,
+      `Stats rank: #${missionRank(pokemon, subject.Name, "stats")}`,
+      `Usage: ${formatPercent(usageValue(subject))}%`,
+      `Usage rank: #${missionRank(pokemon, subject.Name, "usage")}`,
+    ];
+  }
+
+  if (comparison) {
+    return [
+      `${subject.Name}: #${missionRank(pokemon, subject.Name, "synergy")} Synergy`,
+      `${comparison.Name}: #${missionRank(pokemon, comparison.Name, "stats")} Stats`,
+      `${subject.Name}: ${formatNumber(subject.degree)} partners`,
+      `${comparison.Name}: ${formatNumber(comparison.degree)} partners`,
+    ];
+  }
+
+  return [
+    `Stats rank: #${missionRank(pokemon, subject.Name, "stats")}`,
+    `Usage rank: #${missionRank(pokemon, subject.Name, "usage")}`,
+    `Synergy rank: #${missionRank(pokemon, subject.Name, "synergy")}`,
+    `Team partners: ${formatNumber(subject.degree)}`,
+  ];
+}
+
+function MissionInsightCard({ activeMission, pokemon }) {
   const insight = activeMission ? EXPLORATION_MISSION_INSIGHTS.get(activeMission) : null;
   if (!insight) return null;
+  const evidence = missionEvidence(insight, pokemon);
 
   return (
     <section className="mission-insight-card" aria-live="polite" aria-label="Mission takeaway">
-      <strong>{`✓ ${insight.title}`}</strong>
-      <p>{insight.text}</p>
+      <div className="mission-insight-heading">
+        <span aria-hidden="true">✓</span>
+        <div>
+          <strong>{insight.title}</strong>
+          <p>{insight.conclusion}</p>
+        </div>
+      </div>
+      {evidence.length ? (
+        <dl className="mission-evidence" aria-label="Mission evidence">
+          {evidence.map((item) => {
+            const [label, ...valueParts] = item.split(": ");
+            return (
+              <div key={item}>
+                <dt>{label}</dt>
+                <dd>{valueParts.join(": ")}</dd>
+              </div>
+            );
+          })}
+        </dl>
+      ) : null}
+      <div className="mission-why">
+        <h4>Why it matters</h4>
+        {insight.whyItMatters.map((paragraph) => (
+          <p key={paragraph}>{paragraph}</p>
+        ))}
+        <strong>Competitive value emerges from team fit and network position, not only raw stats.</strong>
+      </div>
     </section>
   );
 }
@@ -1971,7 +2081,7 @@ export default function App() {
           the strongest evidence that competitive value is built through synergy.
         </p>
         <ExplorationMissions activeMission={activeMission} onMissionSelect={handleMissionSelect} />
-        <MissionInsightCard activeMission={activeMission} />
+        <MissionInsightCard activeMission={activeMission} pokemon={enrichedPokemon} />
         <PokemonPicker
           pokemon={enrichedPokemon}
           imageLookup={data.imageLookup}

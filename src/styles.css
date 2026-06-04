@@ -658,21 +658,111 @@ p {
   margin: 10px 0 0;
   border: 1px solid rgba(242, 181, 107, 0.26);
   border-radius: 8px;
-  padding: 12px 14px;
-  background: rgba(242, 181, 107, 0.08);
+  padding: 14px;
+  background:
+    linear-gradient(180deg, rgba(242, 181, 107, 0.08), rgba(242, 181, 107, 0.025)),
+    rgba(18, 23, 29, 0.42);
 }
 
-.mission-insight-card strong {
+.mission-insight-heading {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+}
+
+.mission-insight-heading > span {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(242, 181, 107, 0.46);
+  border-radius: 999px;
+  place-items: center;
+  background: rgba(242, 181, 107, 0.12);
+  color: #f2b56b;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.mission-insight-heading strong {
   display: block;
   color: #fff1d0;
   font-size: 0.88rem;
   line-height: 1.2;
 }
 
-.mission-insight-card p {
-  margin: 6px 0 0;
+.mission-insight-heading p {
+  margin: 5px 0 0;
   color: #d9e0dc;
   font-size: 0.82rem;
+  line-height: 1.38;
+}
+
+.mission-evidence {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  margin: 13px 0 0;
+}
+
+.mission-evidence div {
+  min-width: 0;
+  border: 1px solid rgba(244, 240, 232, 0.1);
+  border-radius: 6px;
+  padding: 8px 9px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.mission-evidence dt,
+.mission-evidence dd {
+  margin: 0;
+}
+
+.mission-evidence dt {
+  overflow-wrap: anywhere;
+  color: #9da8a5;
+  font-size: 0.64rem;
+  font-weight: 820;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.mission-evidence dd {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  color: #f7f3ea;
+  font-size: 0.83rem;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.mission-why {
+  margin-top: 12px;
+  border-top: 1px solid rgba(242, 181, 107, 0.18);
+  padding-top: 11px;
+}
+
+.mission-why h4 {
+  margin-bottom: 6px;
+  color: #f2b56b;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+}
+
+.mission-why p {
+  margin: 3px 0 0;
+  color: #c5ceca;
+  font-size: 0.78rem;
+  line-height: 1.38;
+}
+
+.mission-why > strong {
+  display: block;
+  margin-top: 8px;
+  border-left: 2px solid #e25f4d;
+  padding-left: 9px;
+  color: #fff1d0;
+  font-size: 0.79rem;
   line-height: 1.38;
 }
 
@@ -2036,6 +2126,10 @@ p {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .mission-evidence {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .picker-results button {
     grid-template-columns: 46px 38px minmax(0, 1fr);
   }
@@ -2156,6 +2250,10 @@ p {
   }
 
   .exploration-missions {
+    grid-template-columns: 1fr;
+  }
+
+  .mission-evidence {
     grid-template-columns: 1fr;
   }
 
