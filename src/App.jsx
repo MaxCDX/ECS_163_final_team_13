@@ -1142,6 +1142,19 @@ function missionEvidence(insight, pokemon) {
   ];
 }
 
+function currentFocusTakeaway({ statsRank, synergyRank, usageRank }) {
+  if (!statsRank || !synergyRank || !usageRank) return "Compare its raw power, adoption, and team position.";
+  if (synergyRank <= 10 && statsRank > 20) return "Moderate stats, elite team connectivity.";
+  if (statsRank <= 10 && usageRank > 30) return "Elite stats, limited competitive adoption.";
+  if (usageRank <= 10 && synergyRank <= 10) return "High usage backed by strong team connectivity.";
+  if (synergyRank < statsRank) return "Team connectivity adds value beyond raw stats.";
+  return "Raw power and team position tell different parts of the story.";
+}
+
+function formatRank(rank) {
+  return rank ? `#${rank}` : "N/A";
+}
+
 function MissionInsightCard({ activeMission, pokemon }) {
   const insight = activeMission ? EXPLORATION_MISSION_INSIGHTS.get(activeMission) : null;
   if (!insight) return null;
@@ -1183,6 +1196,18 @@ function MissionInsightCard({ activeMission, pokemon }) {
 function PokemonPicker({ pokemon, imageLookup, selectedPokemon, selectedName, query, mode, onQueryChange, onModeChange, onSelect }) {
   const modeInfo = PICKER_MODES.find((item) => item.id === mode) || PICKER_MODES[0];
   const options = useMemo(() => rankedPickerOptions(pokemon, query, mode), [mode, pokemon, query]);
+  const currentFocus = useMemo(() => {
+    if (!selectedPokemon) return null;
+    const ranks = {
+      usageRank: missionRank(pokemon, selectedPokemon.Name, "usage"),
+      statsRank: missionRank(pokemon, selectedPokemon.Name, "stats"),
+      synergyRank: missionRank(pokemon, selectedPokemon.Name, "synergy"),
+    };
+    return {
+      ...ranks,
+      takeaway: currentFocusTakeaway(ranks),
+    };
+  }, [pokemon, selectedPokemon]);
 
   return (
     <section className="pokemon-picker-section" aria-labelledby="pokemon-picker-title">
@@ -1197,16 +1222,37 @@ function PokemonPicker({ pokemon, imageLookup, selectedPokemon, selectedName, qu
 
       <div className="pokemon-picker">
         <div className="picker-current">
-          {selectedPokemon ? (
-            <img src={imageLookup.get(selectedPokemon.Name) || ""} alt="" />
-          ) : (
-            <div className="picker-image-placeholder" />
-          )}
-          <div>
-            <span>Current focus</span>
-            <strong>{selectedPokemon?.Name || "None selected"}</strong>
-            <small>{selectedPokemon ? typeLabel(selectedPokemon) : "Choose a search result or ranked option"}</small>
+          <div className="picker-current-identity">
+            {selectedPokemon ? (
+              <img src={imageLookup.get(selectedPokemon.Name) || ""} alt="" />
+            ) : (
+              <div className="picker-image-placeholder" />
+            )}
+            <div className="picker-current-name">
+              <span>Current focus</span>
+              <strong>{selectedPokemon?.Name || "None selected"}</strong>
+              <small>{selectedPokemon ? typeLabel(selectedPokemon) : "Choose a search result or ranked option"}</small>
+            </div>
           </div>
+          {currentFocus ? (
+            <>
+              <dl className="picker-current-ranks" aria-label={`${selectedPokemon.Name} ranking summary`}>
+                <div>
+                  <dt>Usage rank</dt>
+                  <dd>{formatRank(currentFocus.usageRank)}</dd>
+                </div>
+                <div>
+                  <dt>Stats rank</dt>
+                  <dd>{formatRank(currentFocus.statsRank)}</dd>
+                </div>
+                <div>
+                  <dt>Synergy rank</dt>
+                  <dd>{formatRank(currentFocus.synergyRank)}</dd>
+                </div>
+              </dl>
+              <p className="picker-current-takeaway">{currentFocus.takeaway}</p>
+            </>
+          ) : null}
         </div>
 
         <label className="picker-search">

@@ -777,14 +777,22 @@ p {
 }
 
 .picker-current {
-  display: flex;
-  gap: 14px;
-  align-items: center;
+  display: grid;
+  gap: 12px;
   min-width: 0;
-  padding: 14px;
+  padding: 15px;
   border: 1px solid rgba(244, 240, 232, 0.12);
   border-radius: 8px;
-  background: rgba(18, 23, 29, 0.58);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+    rgba(18, 23, 29, 0.62);
+}
+
+.picker-current-identity {
+  display: flex;
+  gap: 13px;
+  align-items: center;
+  min-width: 0;
 }
 
 .picker-current img,
@@ -804,20 +812,20 @@ p {
   border: 1px dashed rgba(244, 240, 232, 0.18);
 }
 
-.picker-current div {
+.picker-current-name {
   min-width: 0;
 }
 
-.picker-current span,
+.picker-current-name span,
 .picker-search span,
-.picker-current small,
+.picker-current-name small,
 .picker-results small {
   color: #9ba6b0;
   font-size: 0.76rem;
   font-weight: 780;
 }
 
-.picker-current strong {
+.picker-current-name strong {
   display: block;
   overflow-wrap: anywhere;
   color: #fff9ef;
@@ -825,9 +833,65 @@ p {
   line-height: 1.2;
 }
 
-.picker-current small {
+.picker-current-name small {
   display: block;
   margin-top: 4px;
+}
+
+.picker-current-ranks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin: 0;
+}
+
+.picker-current-ranks div {
+  min-width: 0;
+  border: 1px solid rgba(244, 240, 232, 0.09);
+  border-radius: 6px;
+  padding: 8px 9px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.picker-current-ranks dt,
+.picker-current-ranks dd {
+  margin: 0;
+}
+
+.picker-current-ranks dt {
+  overflow-wrap: anywhere;
+  color: #9ba6b0;
+  font-size: 0.64rem;
+  font-weight: 820;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.picker-current-ranks dd {
+  margin-top: 5px;
+  color: #fff9ef;
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.picker-current-ranks div:last-child {
+  border-color: rgba(226, 95, 77, 0.24);
+  background: rgba(226, 95, 77, 0.07);
+}
+
+.picker-current-ranks div:last-child dd {
+  color: #f2b56b;
+}
+
+.picker-current-takeaway {
+  margin: 0;
+  border-left: 2px solid #e25f4d;
+  padding-left: 9px;
+  color: #d8ded9;
+  font-size: 0.8rem;
+  font-weight: 760;
+  line-height: 1.35;
 }
 
 .picker-search {
