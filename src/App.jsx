@@ -248,6 +248,18 @@ const ROLE_NOTES = new Map([
     "Rillaboom",
     "Terrain support: Fake Out pressure and Grassy Terrain make it valuable as part of repeated team structures.",
   ],
+  [
+    "Calyrex Shadow Rider",
+    "Fast spread attacker: elite speed and Astral Barrage become more reliable when partners create safe attack windows.",
+  ],
+  [
+    "Calyrex Ice Rider",
+    "Trick Room attacker: bulk and Glacial Lance reward teams that protect setup turns and reverse the speed order.",
+  ],
+  [
+    "Thundurus Incarnate Forme",
+    "Disruption support: priority utility and speed control help powerful teammates act before opposing threats.",
+  ],
 ]);
 const NETWORK_ARCHETYPES = [
   { label: "Support pivots", anchorName: "Incineroar", dx: 24, dy: -36 },

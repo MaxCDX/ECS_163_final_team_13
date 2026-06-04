@@ -33,6 +33,83 @@ const ROLE_CAUSALITY_EXPLANATIONS = new Map([
       outcome: "anchors direct attacking teams",
     },
   ],
+  [
+    "Kyogre",
+    {
+      steps: [
+        ["Drizzle", "powers rain-based offense"],
+        ["Water Spout", "rewards safe positioning"],
+        ["Team Support", "preserves full-power attacks"],
+      ],
+      outcome: "turns team support into sweeping pressure",
+    },
+  ],
+  [
+    "Rillaboom",
+    {
+      steps: [
+        ["Grassy Surge", "adds recovery and terrain"],
+        ["Fake Out", "creates safe turns"],
+        ["Grassy Glide", "adds priority pressure"],
+      ],
+      outcome: "fits many teams as flexible utility",
+    },
+  ],
+  [
+    "Grimmsnarl",
+    {
+      steps: [
+        ["Prankster", "moves support actions first"],
+        ["Dual Screens", "reduces incoming damage"],
+        ["Disruption", "slows opposing plans"],
+      ],
+      outcome: "extends the life of offensive teammates",
+    },
+  ],
+  [
+    "Calyrex Shadow Rider",
+    {
+      steps: [
+        ["Astral Barrage", "pressures both opponents"],
+        ["Elite Speed", "acts before many threats"],
+        ["Partner Support", "creates safer attack windows"],
+      ],
+      outcome: "converts tempo into fast offensive wins",
+    },
+  ],
+  [
+    "Calyrex Ice Rider",
+    {
+      steps: [
+        ["Glacial Lance", "pressures both opponents"],
+        ["Trick Room", "turns low speed into priority"],
+        ["Bulky Partners", "help it survive setup turns"],
+      ],
+      outcome: "anchors slow, durable attacking teams",
+    },
+  ],
+  [
+    "Thundurus Incarnate Forme",
+    {
+      steps: [
+        ["Prankster", "enables fast disruption"],
+        ["Speed Control", "helps attackers move first"],
+        ["Team Support", "opens safer damage windows"],
+      ],
+      outcome: "raises the consistency of offensive cores",
+    },
+  ],
+  [
+    "Zamazenta Crowned Shield",
+    {
+      steps: [
+        ["Dauntless Shield", "adds immediate bulk"],
+        ["Coaching", "strengthens physical partners"],
+        ["Wide Guard", "blocks spread attacks"],
+      ],
+      outcome: "offers support, but sees limited team demand",
+    },
+  ],
 ]);
 
 const NODE_WIDTH = 178;

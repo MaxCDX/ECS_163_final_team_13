@@ -44,6 +44,55 @@ const AUTHORED_CORES = new Map([
       interpretation: "Protected offense gives Zacian safer paths to close games.",
     },
   ],
+  [
+    "Kyogre",
+    {
+      members: ["Kyogre", "Tornadus Incarnate Forme", "Zacian Crowned Sword"],
+      interpretation: "Speed control and secondary pressure help Kyogre preserve strong rain attacks.",
+    },
+  ],
+  [
+    "Rillaboom",
+    {
+      members: ["Rillaboom", "Incineroar", "Zacian Crowned Sword"],
+      interpretation: "Fake Out, terrain utility, and direct offense create a flexible balance core.",
+    },
+  ],
+  [
+    "Grimmsnarl",
+    {
+      members: ["Grimmsnarl", "Zacian Crowned Sword", "Kyogre"],
+      interpretation: "Screens and disruption give powerful attackers more turns to apply pressure.",
+    },
+  ],
+  [
+    "Calyrex Shadow Rider",
+    {
+      members: ["Calyrex Shadow Rider", "Incineroar", "Rillaboom"],
+      interpretation: "Positioning support helps Calyrex Shadow Rider attack before opponents can answer.",
+    },
+  ],
+  [
+    "Calyrex Ice Rider",
+    {
+      members: ["Calyrex Ice Rider", "Incineroar", "Amoonguss"],
+      interpretation: "Redirection and positioning buy the turns Calyrex Ice Rider needs to control speed and attack.",
+    },
+  ],
+  [
+    "Thundurus Incarnate Forme",
+    {
+      members: ["Thundurus Incarnate Forme", "Zacian Crowned Sword", "Incineroar"],
+      interpretation: "Fast disruption and positioning support make Zacian's offense more reliable.",
+    },
+  ],
+  [
+    "Zamazenta Crowned Shield",
+    {
+      members: ["Zamazenta Crowned Shield", "Incineroar", "Thundurus Incarnate Forme"],
+      interpretation: "Zamazenta supports partners with bulk and protection, but this core appears less often than top alternatives.",
+    },
+  ],
 ]);
 
 const NODE_POSITIONS = [
@@ -99,6 +148,34 @@ const NODE_ROLE_DETAILS = new Map([
     {
       role: "Defensive pressure",
       explanation: "High stats but fewer repeated team connections in this format.",
+    },
+  ],
+  [
+    "Calyrex Shadow Rider",
+    {
+      role: "Fast spread attacker",
+      explanation: "Rewards partners that create safe turns for Astral Barrage.",
+    },
+  ],
+  [
+    "Calyrex Ice Rider",
+    {
+      role: "Trick Room attacker",
+      explanation: "Uses bulk and speed reversal to pressure both opponents.",
+    },
+  ],
+  [
+    "Thundurus Incarnate Forme",
+    {
+      role: "Fast disruption",
+      explanation: "Supports attackers with priority utility and speed control.",
+    },
+  ],
+  [
+    "Tornadus Incarnate Forme",
+    {
+      role: "Rain enabler",
+      explanation: "Uses speed control to help Kyogre attack before opponents.",
     },
   ],
 ]);
