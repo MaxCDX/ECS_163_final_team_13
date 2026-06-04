@@ -3,34 +3,34 @@ const ROLE_CAUSALITY_EXPLANATIONS = new Map([
     "Incineroar",
     {
       steps: [
-        ["Intimidate", "pressure reduction"],
-        ["Fake Out", "safe turns"],
-        ["Parting Shot", "positioning"],
-        ["Team fit", "strong team fit"],
+        ["Intimidate", "reduces opponent pressure"],
+        ["Fake Out", "creates safe turns"],
+        ["Parting Shot", "resets positioning"],
+        ["Team Fit", "works across many team styles"],
       ],
-      outcome: "supports high competitive usage",
+      outcome: "repeatedly appears on successful teams",
     },
   ],
   [
     "Amoonguss",
     {
       steps: [
-        ["Spore", "tempo control"],
-        ["Rage Powder", "teammate protection"],
-        ["Regenerator", "team stability"],
+        ["Spore", "slows opposing plans"],
+        ["Rage Powder", "protects teammates"],
+        ["Regenerator", "stays useful over time"],
       ],
-      outcome: "enables team stability",
+      outcome: "supports steady team play",
     },
   ],
   [
     "Zacian Crowned Sword",
     {
       steps: [
-        ["High attack", "offensive pressure"],
-        ["Strong coverage", "threat generation"],
-        ["Consistent damage", "game closing"],
+        ["High attack", "creates offensive pressure"],
+        ["Strong coverage", "threatens many targets"],
+        ["Consistent damage", "closes games reliably"],
       ],
-      outcome: "offensive centerpiece",
+      outcome: "anchors direct attacking teams",
     },
   ],
 ]);

@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import * as d3 from "d3";
 
 const TYPE_COLORS = new Map([
@@ -50,6 +51,57 @@ const NODE_POSITIONS = [
   { x: 74, y: 48, labelAnchor: "start", labelDx: -50, labelDy: -18 },
   { x: 218, y: 48, labelAnchor: "end", labelDx: 50, labelDy: -18 },
 ];
+const NODE_ROLE_DETAILS = new Map([
+  [
+    "Incineroar",
+    {
+      role: "Positioning support",
+      explanation: "Creates safe turns and helps teammates reset board position.",
+    },
+  ],
+  [
+    "Amoonguss",
+    {
+      role: "Redirection support",
+      explanation: "Absorbs pressure and protects high-value teammates.",
+    },
+  ],
+  [
+    "Zacian Crowned Sword",
+    {
+      role: "Offensive pressure",
+      explanation: "Converts safe positioning into damage.",
+    },
+  ],
+  [
+    "Kyogre",
+    {
+      role: "Weather attacker",
+      explanation: "Applies strong offensive pressure through rain-supported teams.",
+    },
+  ],
+  [
+    "Rillaboom",
+    {
+      role: "Terrain utility",
+      explanation: "Adds utility and supports repeated team structures.",
+    },
+  ],
+  [
+    "Grimmsnarl",
+    {
+      role: "Screen support",
+      explanation: "Helps teammates survive through defensive support.",
+    },
+  ],
+  [
+    "Zamazenta Crowned Shield",
+    {
+      role: "Defensive pressure",
+      explanation: "High stats but fewer repeated team connections in this format.",
+    },
+  ],
+]);
 
 function compactName(name) {
   return name.replace(" Crowned Sword", "").replace(" Crowned Shield", "");
@@ -91,7 +143,18 @@ function coreFor(selectedPokemon, teammates) {
   return AUTHORED_CORES.get(selectedPokemon?.Name) || fallbackCore(selectedPokemon, teammates);
 }
 
+function roleDetailsFor(name) {
+  return (
+    NODE_ROLE_DETAILS.get(name) || {
+      role: "Team member",
+      explanation: "Appears as part of this Pokemon's teammate core.",
+    }
+  );
+}
+
 export default function TeamEcosystemPanel({ selectedPokemon, teammates = [], pokemon = [], edges = [] }) {
+  const panelRef = useRef(null);
+  const [tooltip, setTooltip] = useState(null);
   const core = coreFor(selectedPokemon, teammates);
   if (!core) return null;
 
@@ -133,8 +196,23 @@ export default function TeamEcosystemPanel({ selectedPokemon, teammates = [], po
     .domain([0, Math.max(100, d3.max(links, (link) => link.strength) || 0)])
     .range([1.5, 7.5]);
 
+  function showTooltip(event, node) {
+    const bounds = panelRef.current?.getBoundingClientRect();
+    if (!bounds) return;
+    const tooltipWidth = 190;
+    const tooltipHeight = 82;
+    const x = Math.max(12, Math.min(bounds.width - tooltipWidth - 12, event.clientX - bounds.left + 12));
+    const y = Math.max(12, Math.min(bounds.height - tooltipHeight - 12, event.clientY - bounds.top - tooltipHeight / 2));
+    setTooltip({
+      name: node.name,
+      ...roleDetailsFor(node.name),
+      x,
+      y,
+    });
+  }
+
   return (
-    <section className="team-ecosystem-panel" aria-label="Team core visualization">
+    <section ref={panelRef} className="team-ecosystem-panel" aria-label="Team core visualization">
       <h4>Why this team core works</h4>
       <svg className="ecosystem-graph" viewBox="0 0 288 168" role="img" aria-label="Mini team core graph">
         <g className="ecosystem-links">
@@ -152,7 +230,13 @@ export default function TeamEcosystemPanel({ selectedPokemon, teammates = [], po
         </g>
         <g className="ecosystem-nodes">
           {nodes.map((node) => (
-            <g className={`ecosystem-node${node.selected ? " is-selected" : ""}`} key={node.name}>
+            <g
+              className={`ecosystem-node${node.selected ? " is-selected" : ""}`}
+              key={node.name}
+              onMouseEnter={(event) => showTooltip(event, node)}
+              onMouseMove={(event) => showTooltip(event, node)}
+              onMouseLeave={() => setTooltip(null)}
+            >
               <circle
                 cx={node.x}
                 cy={node.y}
@@ -166,6 +250,13 @@ export default function TeamEcosystemPanel({ selectedPokemon, teammates = [], po
           ))}
         </g>
       </svg>
+      {tooltip ? (
+        <div className="ecosystem-tooltip" style={{ transform: `translate(${tooltip.x}px, ${tooltip.y}px)` }}>
+          <strong>{compactName(tooltip.name)}</strong>
+          <span>{tooltip.role}</span>
+          <p>{tooltip.explanation}</p>
+        </div>
+      ) : null}
       <p className="ecosystem-interpretation">{core.interpretation}</p>
     </section>
   );

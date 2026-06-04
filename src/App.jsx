@@ -158,6 +158,36 @@ const EXPLORATION_MISSIONS = [
     description: "Switch between Usage, Stats, and Synergy rankings. Do the same Pokemon stay on top?",
   },
 ];
+const EXPLORATION_MISSION_INSIGHTS = new Map([
+  [
+    "another-incineroar",
+    {
+      title: "Another Incineroar Found",
+      text: "Amoonguss succeeds with moderate raw stats but strong teammate connectivity, supporting the idea that team fit can outweigh raw power.",
+    },
+  ],
+  [
+    "failed-stat-monster",
+    {
+      title: "Failed Stat Monster",
+      text: "Zamazenta has elite raw stats but very low competitive adoption, showing that power alone does not guarantee success.",
+    },
+  ],
+  [
+    "support-vs-attacker",
+    {
+      title: "Different Paths to Success",
+      text: "Zacian succeeds through raw offensive pressure, while Incineroar succeeds through positioning, support, and teammate value.",
+    },
+  ],
+  [
+    "test-network-claim",
+    {
+      title: "Compare the Rankings",
+      text: "Switch between Usage, Stats, and Synergy rankings. If the leaders change, network position may reveal value that raw stats miss.",
+    },
+  ],
+]);
 const ROLE_NOTES = new Map([
   [
     "Incineroar",
@@ -396,7 +426,29 @@ function buildEvidenceRows({ moves, items, abilities, teammates }) {
 }
 
 function shortEvidenceLabel(label) {
-  return label.length > 18 ? `${label.slice(0, 16)}...` : label;
+  return compactName(label)
+    .replace(" Solo Form", " Solo")
+    .replace(" Complete Forme", " Complete")
+    .replace(" Shadow Rider", " Shadow")
+    .replace(" Ice Rider", " Ice")
+    .replace(" Incarnate Forme", " Incarnate")
+    .replace(" Therian Forme", " Therian");
+}
+
+function comparisonLabelPlacement(pointX, label, chartLeft, chartRight) {
+  const estimatedWidth = label.length * 6.8;
+  const rightX = pointX + 12;
+  const leftX = pointX - 12;
+
+  if (rightX + estimatedWidth > chartRight) {
+    return { x: leftX, anchor: "end" };
+  }
+
+  if (leftX - estimatedWidth < chartLeft) {
+    return { x: rightX, anchor: "start" };
+  }
+
+  return { x: rightX, anchor: "start" };
 }
 
 function pearsonCorrelation(data, getX, getY) {
@@ -690,8 +742,9 @@ function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrus
       .data(labelled)
       .join("text")
       .attr("class", (d) => `comparison-label${d.Name === selectedName ? " is-selected" : ""}`)
-      .attr("x", (d) => x(d.Total) + 12)
+      .attr("x", (d) => comparisonLabelPlacement(x(d.Total), compactName(d.Name), margin.left, width - margin.right).x)
       .attr("y", (d) => y(usageValue(d)) - 10)
+      .attr("text-anchor", (d) => comparisonLabelPlacement(x(d.Total), compactName(d.Name), margin.left, width - margin.right).anchor)
       .text((d) => compactName(d.Name));
 
     svg.on("click", () => onSelect(null));
@@ -1002,6 +1055,18 @@ function ExplorationMissions({ activeMission, onMissionSelect }) {
         </button>
       ))}
     </div>
+  );
+}
+
+function MissionInsightCard({ activeMission }) {
+  const insight = activeMission ? EXPLORATION_MISSION_INSIGHTS.get(activeMission) : null;
+  if (!insight) return null;
+
+  return (
+    <section className="mission-insight-card" aria-live="polite" aria-label="Mission takeaway">
+      <strong>{`✓ ${insight.title}`}</strong>
+      <p>{insight.text}</p>
+    </section>
   );
 }
 
@@ -1607,6 +1672,8 @@ function EvidenceBarChart({ rows }) {
   return (
     <section className="evidence-chart-section">
       <h4>Build and teammate signals</h4>
+      <p className="evidence-chart-subtitle">Most common abilities, items, moves, and teammates associated with this Pokemon.</p>
+      <p className="evidence-chart-note">Percentages show how frequently each signal appears in competitive team records.</p>
       <div ref={containerRef} className="evidence-chart" aria-label="Build and teammate evidence chart" />
     </section>
   );
@@ -1904,6 +1971,7 @@ export default function App() {
           the strongest evidence that competitive value is built through synergy.
         </p>
         <ExplorationMissions activeMission={activeMission} onMissionSelect={handleMissionSelect} />
+        <MissionInsightCard activeMission={activeMission} />
         <PokemonPicker
           pokemon={enrichedPokemon}
           imageLookup={data.imageLookup}
