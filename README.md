@@ -1,37 +1,51 @@
-# ECS 163 Final Project Prototype
+# ECS 163 Final Project
 
-This repository contains the first front-end prototype for an ECS 163 Data Visualization final project about competitive Pokémon strength.
+## Project Description
 
-The current prototype is intentionally small: it is a React + D3 data-story page with a hook, a guided comparison, one interactive D3 force-directed network, and a short exploration prompt. It is not the final implementation yet.
+This repository contains a React + D3 data-story about competitive Pokemon team success. The central claim is that competitive value is not explained by raw stats alone; it also depends on teammate structure, usage patterns, build choices, and network position.
 
-## What The Prototype Shows
+The application combines authored storytelling with guided exploration. It starts from a raw-stats assumption, introduces a contradiction through usage data, shows stronger connectivity evidence, reveals a force-directed teammate network, and then lets users test the claim through comparison and exploration missions.
 
-The prototype uses cleaned Pokémon competitive data from `public/data/processed/`. The main visualization shows:
+## Repository Structure
 
-- node: Pokémon
-- node size: usage percent
-- node color: primary type
-- edge: common teammate relationship
-- edge width/opacity: co-usage strength
-- interaction: hover tooltip, click-to-select highlighting, reset button, and detail panel
+- `src/`
+  React components, D3-driven views, interaction logic, and application state.
+- `public/data/processed/`
+  Processed CSV files used directly by the front-end demo.
+- `public/assets/pokemon/`
+  Local Pokemon image assets used in key authored views.
+- `scripts/`
+  Data preprocessing and presentation-support scripts.
+- `report/`
+  Proposal/progress report files and exported figure assets.
 
-React manages the page structure, loaded data, selected Pokémon, tooltip state, and detail panel. D3 handles CSV parsing, scales, axes, and the force-directed network layout.
+## Dataset / Preprocessing
 
-The narrative claim is:
+The app loads processed data from:
 
-> Competitive success emerges from synergy, not just raw stats.
+- `public/data/processed/pokemon_clean.csv`
+- `public/data/processed/team_edges_clean.csv`
+- `public/data/processed/build_usage_clean.csv`
+- `public/data/processed/image_lookup.csv`
 
-The proposal demo focuses on Incineroar: a Pokémon with moderate base stats but unusually strong team-network centrality.
+These processed files are already included in the repository and are sufficient to run the demo.
 
-## Install
+Original data sources:
 
-Install Node.js if needed, then run:
+- [Complete Competitive Pokemon Database (2022)](https://www.kaggle.com/datasets/giorgiocarbone/complete-competitive-pokmon-datasets-may-2022)
+- [Dataset of 32000 Pokemon Images & CSV, JSON](https://www.kaggle.com/datasets/divyanshusingh369/complete-pokemon-library-32k-images-and-csv)
+
+Preprocessing support scripts exist in `scripts/`, including `scripts/preprocess_pokemon_data.py`, but running preprocessing is not required to reproduce the current front-end demo.
+
+## Installation
+
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-## Run Locally
+## Running the Demo
 
 Start the development server:
 
@@ -39,13 +53,11 @@ Start the development server:
 npm run dev
 ```
 
-Open the local URL printed by Vite, usually:
+Vite serves the app on a local URL such as:
 
 ```text
 http://127.0.0.1:5173/
 ```
-
-## Build
 
 Create a production build:
 
@@ -53,42 +65,69 @@ Create a production build:
 npm run build
 ```
 
-Preview the build locally:
+Preview the production build locally:
 
 ```bash
 npm run preview
 ```
-## Dataset
-- [Complete Competitive Pokémon Database (2022)](https://www.kaggle.com/datasets/giorgiocarbone/complete-competitive-pokmon-datasets-may-2022)
 
-- [Dataset of 32000 Pokemon Images & CSV, JSON](https://www.kaggle.com/datasets/divyanshusingh369/complete-pokemon-library-32k-images-and-csv)
+## Implemented Visualizations
 
-## Final Project Checklist
+- D3 scatterplot: base stats vs usage
+- D3 correlation signal scan
+- D3 force-directed teammate network
+- D3 evidence bar chart
+- Ego network comparison view
+- Team core mini-graph
+- Role causality flow
+- Guided exploration missions and ranked picker
 
-The project should stay focused on one argument: competitive strength is not only a raw stat total; it also depends on team context, usage, and build choices.
+Notes:
 
-### Completed
+- The scatterplot, correlation scan, force-directed network, and evidence chart are direct D3-rendered views.
+- The ego comparison and team-core views use real data with SVG rendering and D3 scales.
+- The role causality flow is an authored explanatory SVG tied to selected Pokemon.
 
-- [x] Build a React + D3 prototype with cleaned CSV data.
-- [x] Load Pokemon, teammate edges, build usage, and image lookup data.
-- [x] Show a guided intro around the main claim.
-- [x] Add a small stats-vs-usage comparison for Zacian, Zamazenta, and Incineroar.
-- [x] Expand the comparison chart into a fuller stats-vs-usage context view.
-- [x] Link the comparison view, network, and detail panel through the same selected Pokemon.
-- [x] Add legends for node size, node color, edge thickness, and selection highlighting.
-- [x] Add short annotations that guide the viewer through the main story beats.
-- [x] Add an easier Pokemon picker with name search and ranked suggestions for usage, stat total, and synergy.
-- [x] Add an interactive force-directed team synergy network.
-- [x] Support hover tooltips, click selection, linked highlighting, and reset behavior.
-- [x] Add a selected Pokemon detail panel with stats, usage, rank, teammates, moves, item, and ability.
+## Interactions
 
-### In Progress
+The demo includes:
 
-- [ ] Strengthen the focus + context structure so the overview and detail views clearly work together.
+- selection
+- brushing
+- hover tooltips
+- linked highlighting
+- ranking mode switches
+- guided mission buttons
+- comparison selector
 
-### Still Needed
+Concrete behaviors:
 
-- [ ] Add a compact selected-Pokemon ranking summary for stats, usage, and network centrality.
-- [ ] Add a methodology and data limits section explaining VGC 2022, usage as a proxy, and co-usage limits.
-- [ ] Improve responsive layout and label readability for the final presentation.
-- [ ] Update the final report and README after the app is finished.
+- Scatterplot brushing highlights matching Pokemon in the network.
+- Network node selection updates the detail panel and comparison state.
+- Hovering the network shows per-Pokemon tooltip details.
+- Hovering team-core nodes shows compact role explanations.
+- Guided exploration missions jump to specific hypothesis-driven states.
+- The ranked picker supports usage, stats, and synergy ranking modes.
+
+## Storytelling Flow
+
+The page is structured as a Martini Glass narrative:
+
+1. Assumption: raw power looks like the answer.
+2. Contradiction: high stats do not guarantee high usage.
+3. Network reveal: team context explains the gap.
+4. Explore: guided missions help users test the claim themselves.
+
+Within that flow, the main analytical sequence is:
+
+Scatterplot contradiction -> signal scan -> force-directed network -> ego comparison -> compact evidence/detail -> guided exploration
+
+## Reproducibility Notes
+
+- The demo runs from the committed processed CSV files in `public/data/processed/`.
+- No external API, database, or backend service is required.
+- The current package scripts are:
+  - `npm run dev`
+  - `npm run build`
+  - `npm run preview`
+- Python preprocessing scripts are included for reference and regeneration workflows, but they are not required for normal demo setup.
