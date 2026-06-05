@@ -113,27 +113,27 @@ const STORY_STEPS = [
     id: "assumption",
     label: "Assumption",
     title: "Raw power looks like the answer.",
-    targetId: "hero-title",
+    targetId: "assumption-section",
   },
   {
     id: "contradiction",
     label: "Contradiction",
     title: "High stats do not guarantee usage.",
-    targetId: "guided-title",
+    targetId: "contradiction-section",
     selectedName: "Zamazenta Crowned Shield",
   },
   {
     id: "reveal",
     label: "Network reveal",
     title: "Team context explains the gap.",
-    targetId: "network-title",
+    targetId: "reveal-section",
     selectedName: INCINEROAR_REVEAL_NAME,
   },
   {
     id: "explore",
     label: "Explore",
     title: "Test the pattern yourself.",
-    targetId: "exploration-title",
+    targetId: "explore-section",
   },
 ];
 const EXPLORATION_MISSIONS = [
@@ -165,12 +165,7 @@ const EXPLORATION_MISSION_INSIGHTS = new Map([
       title: "Another Incineroar Found",
       subjectName: "Amoonguss",
       conclusion: "Amoonguss succeeds with moderate raw stats but strong teammate connectivity.",
-      whyItMatters: [
-        "Amoonguss ranks much higher in Synergy than in raw Stats.",
-        "Like Incineroar, its value comes from repeated team connections rather than elite base stats.",
-        "This supports the claim that team fit can outweigh raw power.",
-      ],
-      nextStep: "Open the Role tab below to see how support value creates usage.",
+      nextStep: "Inspect the Role tab to see how support value drives usage.",
     },
   ],
   [
@@ -179,11 +174,7 @@ const EXPLORATION_MISSION_INSIGHTS = new Map([
       title: "Failed Stat Monster",
       subjectName: "Zamazenta Crowned Shield",
       conclusion: "Zamazenta has elite raw stats but very low competitive adoption.",
-      whyItMatters: [
-        "Zamazenta's raw stats are among the highest in the dataset, yet its usage remains near the bottom.",
-        "This demonstrates that power alone does not guarantee competitive success.",
-      ],
-      nextStep: "Compare Stats and Synergy rankings to see why raw power is not enough.",
+      nextStep: "Compare Usage Rank and Connectivity Rank.",
     },
   ],
   [
@@ -193,25 +184,16 @@ const EXPLORATION_MISSION_INSIGHTS = new Map([
       subjectName: "Incineroar",
       comparisonName: "Zacian Crowned Sword",
       conclusion: "Zacian and Incineroar reach high usage through different competitive roles.",
-      whyItMatters: [
-        "Zacian combines elite raw stats with direct offensive pressure.",
-        "Incineroar reaches similar network importance through positioning, support, and repeated teammate value.",
-        "Competitive value can come from team fit as well as individual power.",
-      ],
-      nextStep: "Inspect Team Core to see which teammates reinforce Zacian's success.",
+      nextStep: "Inspect the Ego Comparison view above.",
     },
   ],
   [
     "test-network-claim",
     {
-      title: "Compare the Rankings",
+      title: "Ranking changes when team connectivity becomes the focus",
       subjectName: "Incineroar",
-      conclusion: "Usage, Stats, and Synergy rankings do not reward the same Pokémon.",
-      whyItMatters: [
-        "A Pokémon can rank highly in Synergy while sitting far lower in raw Stats.",
-        "The difference reveals value that is visible in network position but missed by base stat total.",
-      ],
-      nextStep: "Open the Evidence tab to connect ranking differences to build and teammate signals.",
+      conclusion: "The leaders shift when you rank by Synergy instead of raw Stats. That change is the thesis: network position reveals value that base stats miss.",
+      nextStep: "Switch between Usage and Synergy rankings.",
     },
   ],
 ]);
@@ -853,18 +835,39 @@ function NetworkLegend() {
 }
 
 function NetworkRevealCallout({ selectedPokemon }) {
-  const isIncineroar = selectedPokemon?.Name === INCINEROAR_REVEAL_NAME;
+  if (!selectedPokemon) return null;
 
-  if (!isIncineroar) return null;
+  const isIncineroar = selectedPokemon.Name === INCINEROAR_REVEAL_NAME;
+  const isZamazenta = selectedPokemon.Name === "Zamazenta Crowned Shield";
 
   return (
-    <aside className="network-reveal-callout" aria-label="Incineroar narrative reveal">
-      <span>Contradiction case</span>
-      <p>
-        Incineroar has 530 base stats, but {formatPercent(usageValue(selectedPokemon))}% usage and one of the strongest
-        teammate footprints in the format.
-      </p>
-      <strong>Its links reveal support value: Intimidate, Fake Out, Parting Shot, and repeated team fit.</strong>
+    <aside className="network-reveal-callout" aria-label="Selected Pokemon network interpretation">
+      <span>{isIncineroar ? "Contradiction case" : isZamazenta ? "Stat monster under pressure" : "Selected network state"}</span>
+      {isIncineroar ? (
+        <>
+          <p>
+            Incineroar has 530 base stats, but {formatPercent(usageValue(selectedPokemon))}% usage and one of the broadest
+            teammate footprints in the format.
+          </p>
+          <strong>It connects to many successful teammates across different team styles, which helps explain why usage stays so high.</strong>
+        </>
+      ) : isZamazenta ? (
+        <>
+          <p>
+            Zamazenta has elite raw stats, but it appears in a much smaller teammate ecosystem than the format's most-used
+            anchors.
+          </p>
+          <strong>Its limited footprint helps explain why usage remains low even though the base stats are exceptional.</strong>
+        </>
+      ) : (
+        <>
+          <p>
+            {selectedPokemon.Name} is strongest when it repeatedly appears beside teammates that support its role in winning
+            team structures.
+          </p>
+          <strong>A broader teammate footprint usually supports higher usage than raw stats alone.</strong>
+        </>
+      )}
     </aside>
   );
 }
@@ -1046,13 +1049,13 @@ function ConnectivityBridge({ pokemon }) {
   ];
 
   return (
-    <section className="connectivity-bridge" aria-labelledby="connectivity-bridge-title">
+    <section id="contradiction-bridge" className="connectivity-bridge" aria-labelledby="connectivity-bridge-title">
       <div className="bridge-copy">
         <p className="section-label">Signal scan</p>
         <h2 id="connectivity-bridge-title">Usage follows team connections more closely than raw stats.</h2>
         <p>
-          We compared possible predictors of usage: raw strength, role shape, partner strength, and team connectivity.
-          Connectivity degree showed the strongest relationship with usage.
+          If raw stats are not enough, what explains usage better? In this dataset, teammate connectivity is the
+          strongest signal.
         </p>
         <div className="bridge-summary" aria-label="Correlation scan summary">
           {summaryMetrics.map((metric) => (
@@ -1079,11 +1082,10 @@ function ConnectivityBridge({ pokemon }) {
         <CorrelationScanLegend />
         <aside className="correlation-interpretation" aria-label="Signal scan interpretation">
           <h3>What does this mean?</h3>
-          <p>A Pokémon's network position explains usage far better than raw power.</p>
           <p>
-            Connectivity (r = {formatCorrelation(connectivityValue)}) is nearly {d3.format(".0f")(strengthRatio)} times
-            stronger than total stats (r = {formatCorrelation(statsValue)}), suggesting that successful Pokémon are
-            often defined by who they work with.
+            Teammate connectivity (r = {formatCorrelation(connectivityValue)}) is nearly {d3.format(".0f")(strengthRatio)} times
+            stronger than total stats (r = {formatCorrelation(statsValue)}), so repeated teammate structure explains
+            usage better than raw power alone.
           </p>
         </aside>
       </div>
@@ -1162,6 +1164,14 @@ function missionEvidence(insight, pokemon) {
     ];
   }
 
+  if (insight.subjectName === "Incineroar" && insight.title === "Ranking changes when team connectivity becomes the focus") {
+    return [
+      "Usage leader: Zacian Crowned Sword",
+      "Stats leader: Zacian Crowned Sword",
+      "Synergy outlier: Incineroar",
+    ];
+  }
+
   return [
     `Stats rank: #${missionRank(pokemon, subject.Name, "stats")}`,
     `Usage rank: #${missionRank(pokemon, subject.Name, "usage")}`,
@@ -1210,13 +1220,6 @@ function MissionInsightCard({ activeMission, pokemon }) {
           })}
         </dl>
       ) : null}
-      <div className="mission-why">
-        <h4>Why it matters</h4>
-        {insight.whyItMatters.map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
-        ))}
-        <strong>Competitive value emerges from team fit and network position, not only raw stats.</strong>
-      </div>
       <p className="mission-next-step">
         <strong>Next step:</strong> {insight.nextStep}
       </p>
@@ -1871,11 +1874,13 @@ export default function App() {
   const [selectedName, setSelectedName] = useState("Incineroar");
   const [comparisonName, setComparisonName] = useState("Zacian Crowned Sword");
   const [brushedNames, setBrushedNames] = useState([]);
-  const [activeStep, setActiveStep] = useState("reveal");
+  const [activeStep, setActiveStep] = useState("assumption");
   const [pickerQuery, setPickerQuery] = useState("");
   const [pickerMode, setPickerMode] = useState("usage");
   const [activeMission, setActiveMission] = useState(null);
   const brushedKeyRef = useRef("");
+  const storyStepLockRef = useRef(null);
+  const storyVisibilityRef = useRef(new Map());
 
   const enrichedPokemon = useMemo(() => {
     if (!data) return [];
@@ -1953,6 +1958,7 @@ export default function App() {
     setBrushedNames([]);
     brushedKeyRef.current = "";
     setActiveMission(null);
+    storyStepLockRef.current = { id: step.id, targetId: step.targetId, minRatio: 0.2 };
     window.requestAnimationFrame(() => {
       document.getElementById(step.targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -1994,6 +2000,60 @@ export default function App() {
     });
   }, []);
 
+  useEffect(() => {
+    if (!data) return undefined;
+    let frameId = 0;
+
+    const resolveActiveStep = () => {
+      const lockedStep = storyStepLockRef.current;
+      if (lockedStep) {
+        const lockedTarget = document.getElementById(lockedStep.targetId);
+        if (lockedTarget && lockedTarget.getBoundingClientRect().top > window.innerHeight * 0.2) {
+          setActiveStep((current) => (current === lockedStep.id ? current : lockedStep.id));
+          return;
+        }
+        storyStepLockRef.current = null;
+      }
+
+      const activationOffset = 120;
+      const exploreActivationOffset = window.innerHeight * 0.4;
+      const contradictionTop = document.getElementById("contradiction-section")?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
+      const bridgeTop = document.getElementById("contradiction-bridge")?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
+      const revealTop = document.getElementById("reveal-section")?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
+      const exploreTop = document.getElementById("explore-section")?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY;
+
+      let nextStep = "assumption";
+      if (exploreTop <= exploreActivationOffset) {
+        nextStep = "explore";
+      } else if (revealTop <= activationOffset) {
+        nextStep = "reveal";
+      } else if (contradictionTop <= activationOffset || bridgeTop <= activationOffset) {
+        nextStep = "contradiction";
+      }
+
+      setActiveStep((current) => (current === nextStep ? current : nextStep));
+    };
+
+    const scheduleResolve = () => {
+      if (frameId) return;
+      frameId = window.requestAnimationFrame(() => {
+        frameId = 0;
+        resolveActiveStep();
+      });
+    };
+
+    resolveActiveStep();
+    window.addEventListener("scroll", scheduleResolve, { passive: true });
+    window.addEventListener("resize", scheduleResolve);
+
+    return () => {
+      if (frameId) window.cancelAnimationFrame(frameId);
+      window.removeEventListener("scroll", scheduleResolve);
+      window.removeEventListener("resize", scheduleResolve);
+      storyVisibilityRef.current.clear();
+    };
+  }, [data]);
+
   if (error) {
     return (
       <main className="story-shell">
@@ -2012,23 +2072,23 @@ export default function App() {
 
   const selectedInNetwork = selectedName && subset.nodes.some((d) => d.Name === selectedName);
   const networkNote = brushedNames.length
-    ? `${brushedNames.length} Pokémon brushed in the scatterplot. Matching nodes are highlighted in the network.`
+    ? `${brushedNames.length} Pokémon brushed in the scatterplot. Use the network to see whether those outliers share similar teammate structure.`
     : selectedInNetwork
     ? selectedName === INCINEROAR_REVEAL_NAME
-      ? "Incineroar is the authored reveal: moderate stats, high usage, and bright support links."
-      : `${selectedName} is selected. Its brightest links show common teammates.`
-    : "Click a Pokémon to lock its team relationships.";
+      ? "Incineroar succeeds because its teammate footprint stays broad across many successful team styles."
+      : "This selected Pokémon's usage depends on how broadly it fits into repeated teammate structures."
+    : "Click a Pokémon to test whether team connectivity explains its usage better than raw stats.";
 
   return (
     <main className="story-shell">
-      <section className="hero" aria-labelledby="hero-title">
+      <section id="assumption-section" className="hero" aria-labelledby="hero-title">
         <div>
           <p className="section-label">Team 13 · competitive Pokémon data story</p>
           <h1 id="hero-title">Raw power matters. Team fit matters too.</h1>
           <p className="data-kicker">VGC stats, usage, teammate networks, roles, moves, items, and abilities</p>
           <p>
-            Base stats explain part of competitive value. This story asks what else separates powerful Pokémon from
-            Pokémon that keep showing up on winning teams.
+            If raw stats alone explained competitive success, the strongest Pokémon should also be the most used. This
+            story tests that assumption.
           </p>
           <div className="hero-facts" aria-label="Dataset summary">
             <span>{formatNumber(enrichedPokemon.length)} Pokémon</span>
@@ -2046,13 +2106,13 @@ export default function App() {
 
       <StoryStepper activeStep={activeStep} onStep={handleStoryStep} />
 
-      <section className="guided-section" aria-labelledby="guided-title">
+      <section id="contradiction-section" className="guided-section" aria-labelledby="guided-title">
         <div className="section-copy">
           <p className="section-label">Stat total vs. usage</p>
           <h2 id="guided-title">High stats do not guarantee high usage.</h2>
           <p>
-            Base stat total has only a weak relationship with usage. Zacian is both powerful and popular, but Zamazenta
-            has similarly huge stats with far lower usage. Incineroar has moderate stats and still sits near the top.
+            If stronger Pokémon were always used more, the highest stats would cluster at the top. Instead, the
+            relationship is weak: Zacian fits the assumption, Zamazenta challenges it, and Incineroar breaks it.
           </p>
           <StoryCallouts
             items={[
@@ -2080,7 +2140,7 @@ export default function App() {
 
       <ConnectivityBridge pokemon={enrichedPokemon} />
 
-      <section className="network-section" aria-labelledby="network-title">
+      <section id="reveal-section" className="network-section" aria-labelledby="network-title">
         <div className="network-intro">
           <div>
             <p className="section-label">Team synergy network</p>
@@ -2089,8 +2149,8 @@ export default function App() {
           <aside className="network-intro-explanation" aria-label="Why look at a network">
             <h3>Why look at a network?</h3>
             <p>
-              If competitive success depends on team fit, important Pokémon should appear near many useful teammates.
-              The network reveals these relationships directly.
+              If team fit explains usage better than raw stats, important Pokémon should appear inside larger and more
+              repeated teammate ecosystems.
             </p>
             <small>
               Larger nodes are used more often. Thicker edges show stronger teammate co-usage.
@@ -2102,12 +2162,12 @@ export default function App() {
               {
                 label: "03",
                 title: "Incineroar breaks the simple stats story",
-                body: "The default selection starts with the contradiction case: moderate stats, high usage, and unusually visible team connections.",
+                body: "The default selection starts with the contradiction case: moderate stats, high usage, and an unusually broad teammate footprint.",
               },
               {
                 label: "04",
-                title: "Usage is relational",
-                body: "Thick links and repeated partners show where support roles create value through team fit, not only individual stats.",
+                title: "Team fit explains usage",
+                body: "The strongest competitive Pokémon are not just powerful. They also sit inside larger, repeated teammate structures.",
               },
           ]}
         />
@@ -2156,12 +2216,11 @@ export default function App() {
         </div>
       </section>
 
-      <section className="exploration-prompt" aria-labelledby="exploration-title">
+      <section id="explore-section" className="exploration-prompt" aria-labelledby="exploration-title">
         <p className="section-label">Reader task</p>
         <h2 id="exploration-title">Find the high-value connectors.</h2>
         <p>
-          Look for Pokémon that are not statistical giants, but still sit near the center of the team network. Those are
-          the strongest evidence that competitive value is built through synergy.
+          Use the missions and rankings below to test whether team connectivity explains usage better than raw stats.
         </p>
         <ExplorationMissions activeMission={activeMission} onMissionSelect={handleMissionSelect} />
         <MissionInsightCard activeMission={activeMission} pokemon={enrichedPokemon} />
@@ -2176,6 +2235,9 @@ export default function App() {
           onModeChange={setPickerMode}
           onSelect={(name) => handleSelectName(name, { scrollToNetwork: true })}
         />
+        <p className="exploration-limitation-note">
+          Usage and teammate co-occurrence are observational signals and do not prove direct causal battle outcomes.
+        </p>
       </section>
     </main>
   );

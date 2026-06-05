@@ -45,6 +45,28 @@ const ROLE_CAUSALITY_EXPLANATIONS = new Map([
     },
   ],
   [
+    "Landorus Therian Forme",
+    {
+      steps: [
+        ["Intimidate", "lowers physical pressure"],
+        ["Earthquake", "threatens broad damage"],
+        ["Flexible Coverage", "fits many board states"],
+      ],
+      outcome: "blends disruption with repeated offensive value",
+    },
+  ],
+  [
+    "Regieleki",
+    {
+      steps: [
+        ["Extreme Speed", "moves before many threats"],
+        ["Fast Pressure", "forces immediate responses"],
+        ["Team Support", "helps partners keep momentum"],
+      ],
+      outcome: "creates value through speed and tempo",
+    },
+  ],
+  [
     "Rillaboom",
     {
       steps: [
@@ -100,6 +122,17 @@ const ROLE_CAUSALITY_EXPLANATIONS = new Map([
     },
   ],
   [
+    "Tornadus Incarnate Forme",
+    {
+      steps: [
+        ["Prankster", "acts before many threats"],
+        ["Speed Control", "lets partners move first"],
+        ["Flexible Support", "fits many offensive teams"],
+      ],
+      outcome: "improves the tempo of fast team cores",
+    },
+  ],
+  [
     "Zamazenta Crowned Shield",
     {
       steps: [
@@ -108,6 +141,50 @@ const ROLE_CAUSALITY_EXPLANATIONS = new Map([
         ["Wide Guard", "blocks spread attacks"],
       ],
       outcome: "offers support, but sees limited team demand",
+    },
+  ],
+  [
+    "Groudon",
+    {
+      steps: [
+        ["Drought", "powers sun-based pressure"],
+        ["Spread Damage", "threatens both opponents"],
+        ["Weather Core", "works with dedicated partners"],
+      ],
+      outcome: "anchors high-pressure sun teams",
+    },
+  ],
+  [
+    "Gastrodon",
+    {
+      steps: [
+        ["Storm Drain", "redirects water pressure"],
+        ["Board Stability", "covers key team weaknesses"],
+        ["Slow Utility", "supports heavier team styles"],
+      ],
+      outcome: "stays relevant by protecting valuable partners",
+    },
+  ],
+  [
+    "Indeedee Female",
+    {
+      steps: [
+        ["Psychic Terrain", "blocks priority pressure"],
+        ["Follow Me", "protects key attackers"],
+        ["Support Core", "creates safer setup turns"],
+      ],
+      outcome: "enables fragile teammates to execute plans",
+    },
+  ],
+  [
+    "Whimsicott",
+    {
+      steps: [
+        ["Prankster", "delivers support immediately"],
+        ["Tailwind", "raises team speed"],
+        ["Utility Moves", "opens favorable board states"],
+      ],
+      outcome: "turns speed control into team-wide value",
     },
   ],
 ]);

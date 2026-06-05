@@ -282,7 +282,7 @@ export default function EgoNetworkComparisonView({
       <div className="ego-comparison-header">
         <div>
           <p className="section-label">Ego network comparison</p>
-          <h3 id="ego-comparison-title">How does team value differ?</h3>
+          <h3 id="ego-comparison-title">How do stats and teammate footprint differ?</h3>
         </div>
         <label className="ego-comparison-selector">
           <span>Compare with</span>
