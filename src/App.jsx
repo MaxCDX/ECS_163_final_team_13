@@ -600,13 +600,15 @@ function usePokemonData() {
   return { data, error };
 }
 
-function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrush }) {
+function ComparisonChart({ pokemon, selectedName, comparisonName, activeSlot, brushedNames, onSelect, onBrush }) {
   const [containerRef, width] = useElementWidth();
   const onBrushRef = useRef(onBrush);
   const brushedNamesRef = useRef(brushedNames);
-  const ignoreNextSvgClickRef = useRef(false);
   const brushBehaviorRef = useRef(null);
   const brushLayerRef = useRef(null);
+  const brushSelectionRef = useRef(null);
+  const brushGestureChangedRef = useRef(false);
+  const suppressNextBrushClickRef = useRef(false);
 
   useEffect(() => {
     onBrushRef.current = onBrush;
@@ -620,8 +622,9 @@ function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrus
     if (!width || !pokemon.length) return undefined;
 
     const data = pokemon.filter((d) => d.hasUsageData && Number.isFinite(d.Total) && usageValue(d) > 0);
-    const selected = data.find((d) => d.Name === selectedName);
-    const labelNames = new Set([...COMPARISON_NAMES, selectedName].filter(Boolean));
+    const activeName = activeSlot === "second" ? comparisonName : selectedName;
+    const selected = data.find((d) => d.Name === activeName);
+    const labelNames = new Set([...COMPARISON_NAMES, selectedName, comparisonName].filter(Boolean));
     const labelled = data.filter((d) => labelNames.has(d.Name));
     const trend = linearRegression(data, (d) => d.Total, usageValue);
     const height = 380;
@@ -718,18 +721,30 @@ function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrus
         [margin.left, margin.top],
         [width - margin.right, height - margin.bottom],
       ])
-      .on("brush end", (event) => {
+      .on("start", (event) => {
+        if (event.sourceEvent) {
+          brushGestureChangedRef.current = false;
+        }
+      })
+      .on("brush", (event) => {
+        if (event.selection) {
+          brushSelectionRef.current = event.selection.map((point) => [...point]);
+        }
+        if (event.sourceEvent) {
+          brushGestureChangedRef.current = true;
+        }
+      })
+      .on("end", (event) => {
         if (!event.selection) {
-          if (brushedNamesRef.current.length) {
-            ignoreNextSvgClickRef.current = true;
-          }
+          brushSelectionRef.current = null;
           onBrushRef.current([]);
           return;
         }
-        if (event.type === "end") {
-          ignoreNextSvgClickRef.current = true;
-        }
 
+        brushSelectionRef.current = event.selection.map((point) => [...point]);
+        if (event.sourceEvent && brushGestureChangedRef.current) {
+          suppressNextBrushClickRef.current = true;
+        }
         const [[x0, y0], [x1, y1]] = event.selection;
         const names = data
           .filter((d) => {
@@ -744,19 +759,48 @@ function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrus
     const brushLayer = svg.append("g").attr("class", "scatter-brush").call(brush);
     brushBehaviorRef.current = brush;
     brushLayerRef.current = brushLayer.node();
+    if (brushedNamesRef.current.length && brushSelectionRef.current) {
+      brushLayer.call(brush.move, brushSelectionRef.current);
+    }
 
-    const clearActiveBrush = (event) => {
-      if (!brushedNamesRef.current.length) return;
+    brushLayer.on("click.pick-dot", (event) => {
       event.stopPropagation();
-      ignoreNextSvgClickRef.current = true;
-      brushLayer.call(brush.move, null);
+      if (suppressNextBrushClickRef.current) {
+        suppressNextBrushClickRef.current = false;
+        return;
+      }
+
+      const [px, py] = d3.pointer(event, svg.node());
+      const nearest = d3.least(data, (d) => {
+        const dx = px - x(d.Total);
+        const dy = py - y(usageValue(d));
+        return dx * dx + dy * dy;
+      });
+      if (nearest) {
+        const threshold = nearest.Name === selectedName || nearest.Name === comparisonName ? 12 : 9;
+        const dx = px - x(nearest.Total);
+        const dy = py - y(usageValue(nearest));
+        if (dx * dx + dy * dy <= threshold * threshold) {
+          onSelect(nearest.Name === activeName ? null : nearest.Name);
+          return;
+        }
+      }
+
+      if (brushedNamesRef.current.length) {
+        brushLayer.call(brush.move, null);
+        return;
+      }
+      onSelect(null);
+    });
+
+    const dotPriority = (d) => {
+      if (d.Name === activeName) return 3;
+      if (d.Name === selectedName || d.Name === comparisonName) return 2;
+      if (brushedNamesRef.current.includes(d.Name)) return 1;
+      return 0;
     };
 
-    brushLayer.select(".overlay").on("click.clear-brush", clearActiveBrush);
-    brushLayer.select(".selection").on("click.clear-brush", clearActiveBrush);
-    brushLayer.node()?.addEventListener("click", clearActiveBrush, true);
-
-    svg
+    const dots = svg
       .append("g")
       .selectAll("circle")
       .data(data)
@@ -765,22 +809,28 @@ function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrus
         [
           "comparison-dot",
           COMPARISON_NAMES.includes(d.Name) ? "is-case-study" : "",
-          d.Name === selectedName ? "is-selected" : "",
+          d.Name === selectedName ? "is-first-selection" : "",
+          d.Name === comparisonName ? "is-second-selection" : "",
+          d.Name === activeName ? "is-active-selection" : "",
         ]
           .filter(Boolean)
           .join(" "),
       )
+      .classed("is-brushed", (d) => brushedNamesRef.current.includes(d.Name))
       .attr("cx", (d) => x(d.Total))
       .attr("cy", (d) => y(usageValue(d)))
       .attr("r", (d) => {
-        if (d.Name === selectedName) return 8.5;
+        if (d.Name === selectedName || d.Name === comparisonName) return d.Name === activeName ? 9 : 8;
         return COMPARISON_NAMES.includes(d.Name) ? 6.8 : 4.2;
       })
       .attr("fill", (d) => typeColor(d.Type1))
       .on("click", (event, d) => {
         event.stopPropagation();
-        onSelect(d.Name === selectedName ? null : d.Name);
+        onSelect(d.Name === activeName ? null : d.Name);
       })
+      .sort((a, b) => d3.ascending(dotPriority(a), dotPriority(b)));
+
+    dots
       .append("title")
       .text((d) => `${d.Name}: ${formatNumber(d.Total)} total stats, ${formatPercent(usageValue(d))}% usage`);
 
@@ -789,19 +839,25 @@ function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrus
       .selectAll("text")
       .data(labelled)
       .join("text")
-      .attr("class", (d) => `comparison-label${d.Name === selectedName ? " is-selected" : ""}`)
+      .attr("class", (d) =>
+        [
+          "comparison-label",
+          d.Name === selectedName ? "is-first-selection" : "",
+          d.Name === comparisonName ? "is-second-selection" : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
+      )
       .attr("x", (d) => comparisonLabelPlacement(x(d.Total), compactName(d.Name), margin.left, width - margin.right).x)
       .attr("y", (d) => y(usageValue(d)) - 10)
       .attr("text-anchor", (d) => comparisonLabelPlacement(x(d.Total), compactName(d.Name), margin.left, width - margin.right).anchor)
       .text((d) => compactName(d.Name));
 
-    svg.on("click", () => {
-      if (ignoreNextSvgClickRef.current) {
-        ignoreNextSvgClickRef.current = false;
-        return;
-      }
+    brushLayer.raise();
+
+    svg.on("click", (event) => {
+      if (event.target !== svg.node()) return;
       if (brushedNamesRef.current.length) {
-        ignoreNextSvgClickRef.current = true;
         brushLayer.call(brush.move, null);
         return;
       }
@@ -809,7 +865,7 @@ function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrus
     });
 
     return () => root.selectAll("*").remove();
-  }, [containerRef, onSelect, pokemon, selectedName, width]);
+  }, [activeSlot, comparisonName, containerRef, onSelect, pokemon, selectedName, width]);
 
   useEffect(() => {
     const brushedSet = new Set(brushedNames);
@@ -818,6 +874,7 @@ function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrus
       .classed("is-brushed", (d) => brushedSet.has(d.Name));
 
     if (!brushedNames.length && brushLayerRef.current && brushBehaviorRef.current) {
+      brushSelectionRef.current = null;
       d3.select(brushLayerRef.current).call(brushBehaviorRef.current.move, null);
     }
   }, [brushedNames, containerRef]);
@@ -1117,11 +1174,6 @@ function ConnectivityBridge({ pokemon }) {
             </div>
           ))}
         </div>
-      </div>
-
-      <div className="correlation-scan-panel">
-        <CorrelationScanChart rows={rows} />
-        <CorrelationScanLegend />
         <aside className="correlation-interpretation" aria-label="Signal scan interpretation">
           <h3>What does this mean?</h3>
           <p>
@@ -1130,6 +1182,11 @@ function ConnectivityBridge({ pokemon }) {
             usage better than raw power alone.
           </p>
         </aside>
+      </div>
+
+      <div className="correlation-scan-panel">
+        <CorrelationScanChart rows={rows} />
+        <CorrelationScanLegend />
       </div>
     </section>
   );
@@ -1269,7 +1326,19 @@ function MissionInsightCard({ activeMission, pokemon }) {
   );
 }
 
-function PokemonPicker({ pokemon, imageLookup, selectedPokemon, selectedName, query, mode, onQueryChange, onModeChange, onSelect }) {
+function PokemonPicker({
+  pokemon,
+  imageLookup,
+  selectedPokemon,
+  selectedName,
+  comparisonName,
+  activeSlot,
+  query,
+  mode,
+  onQueryChange,
+  onModeChange,
+  onSelect,
+}) {
   const modeInfo = PICKER_MODES.find((item) => item.id === mode) || PICKER_MODES[0];
   const options = useMemo(() => rankedPickerOptions(pokemon, query, mode), [mode, pokemon, query]);
   const currentFocus = useMemo(() => {
@@ -1297,7 +1366,7 @@ function PokemonPicker({ pokemon, imageLookup, selectedPokemon, selectedName, qu
       </div>
 
       <div className="pokemon-picker">
-        <div className="picker-current">
+        <div className={`picker-current is-${activeSlot}`}>
           <div className="picker-current-identity">
             {selectedPokemon ? (
               <img src={imageLookup.get(selectedPokemon.Name) || ""} alt="" />
@@ -1305,7 +1374,7 @@ function PokemonPicker({ pokemon, imageLookup, selectedPokemon, selectedName, qu
               <div className="picker-image-placeholder" />
             )}
             <div className="picker-current-name">
-              <span>Current focus</span>
+              <span>{activeSlot === "second" ? "Second selection" : "First selection"}</span>
               <strong>{selectedPokemon?.Name || "None selected"}</strong>
               <small>{selectedPokemon ? typeLabel(selectedPokemon) : "Choose a search result or ranked option"}</small>
             </div>
@@ -1358,7 +1427,13 @@ function PokemonPicker({ pokemon, imageLookup, selectedPokemon, selectedName, qu
           {options.length ? (
             options.map((item, index) => (
               <button
-                className={item.Name === selectedName ? "is-selected" : ""}
+                className={[
+                  item.Name === selectedName ? "is-first-selection" : "",
+                  item.Name === comparisonName ? "is-second-selection" : "",
+                  item.Name === (activeSlot === "second" ? comparisonName : selectedName) ? "is-active-selection" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 key={item.Name}
                 type="button"
                 onClick={() => onSelect(item.Name)}
@@ -1384,7 +1459,36 @@ function PokemonPicker({ pokemon, imageLookup, selectedPokemon, selectedName, qu
   );
 }
 
-function HeroRoster({ pokemon, imageLookup, selectedName, onSelect }) {
+function SelectionSlotButton({ slot, pokemon, isActive, onSelect }) {
+  const slotClass = slot.toLowerCase();
+  return (
+    <button className={`${isActive ? "is-active" : ""} is-${slotClass}`} type="button" onClick={onSelect}>
+      <span>{slot}</span>
+      <strong>{pokemon?.Name || "Empty"}</strong>
+    </button>
+  );
+}
+
+function ComparisonSlotSelector({ selectedPokemon, comparisonPokemon, activeSlot, onActiveSlotChange }) {
+  return (
+    <div className="global-selection-slots" aria-label="Global comparison selections">
+      <SelectionSlotButton
+        slot="First"
+        pokemon={selectedPokemon}
+        isActive={activeSlot === "first"}
+        onSelect={() => onActiveSlotChange("first")}
+      />
+      <SelectionSlotButton
+        slot="Second"
+        pokemon={comparisonPokemon}
+        isActive={activeSlot === "second"}
+        onSelect={() => onActiveSlotChange("second")}
+      />
+    </div>
+  );
+}
+
+function HeroRoster({ pokemon, imageLookup, onSelect }) {
   const featured = CASE_STUDIES.map((name) => pokemon.find((d) => d.Name === name)).filter(Boolean).slice(0, 6);
 
   return (
@@ -1396,7 +1500,6 @@ function HeroRoster({ pokemon, imageLookup, selectedName, onSelect }) {
       <div className="hero-sprite-grid">
         {featured.map((d) => (
           <button
-            className={d.Name === selectedName ? "is-selected" : ""}
             key={d.Name}
             style={{ "--type-color": typeColor(d.Type1) }}
             type="button"
@@ -1420,15 +1523,21 @@ function HeroRoster({ pokemon, imageLookup, selectedName, onSelect }) {
   );
 }
 
-function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, onSelect }) {
+function NetworkGraph({ nodes, links, imageLookup, focusedName, selectedNames = {}, brushedNames, onNodeSelect, onBackgroundClick }) {
   const [containerRef, width] = useElementWidth();
-  const selectedNameRef = useRef(selectedName);
+  const graphLayerRef = useRef(null);
+  const onNodeSelectRef = useRef(onNodeSelect);
+  const onBackgroundClickRef = useRef(onBackgroundClick);
   const simulationRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
 
   useEffect(() => {
-    selectedNameRef.current = selectedName;
-  }, [selectedName]);
+    onNodeSelectRef.current = onNodeSelect;
+  }, [onNodeSelect]);
+
+  useEffect(() => {
+    onBackgroundClickRef.current = onBackgroundClick;
+  }, [onBackgroundClick]);
 
   useEffect(() => {
     if (!width || !nodes.length) return undefined;
@@ -1436,7 +1545,7 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
     if (simulationRef.current) simulationRef.current.stop();
 
     const height = Math.max(380, Math.min(440, width * 0.38));
-    const root = d3.select(containerRef.current);
+    const root = d3.select(graphLayerRef.current);
     root.selectAll("*").remove();
     setTooltip(null);
 
@@ -1485,7 +1594,7 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
       .on("click", (event, d) => {
         event.preventDefault();
         event.stopPropagation();
-        onSelect(d.Name === selectedNameRef.current ? null : d.Name);
+        onNodeSelectRef.current(d.Name);
       });
 
     const node = nodeLayer
@@ -1575,7 +1684,7 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
         }),
     );
 
-    svg.on("click", () => onSelect(null));
+    svg.on("click", () => onBackgroundClickRef.current());
     simulationRef.current = simulation;
 
     function setTooltipFromEvent(event, d) {
@@ -1593,27 +1702,30 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
       simulation.stop();
       root.selectAll("*").remove();
     };
-  }, [containerRef, imageLookup, links, nodes, onSelect, width]);
+  }, [containerRef, imageLookup, links, nodes, width]);
 
   useEffect(() => {
-    const selectedInGraph = selectedName && nodes.some((d) => d.Name === selectedName);
+    const firstSelectedName = Array.isArray(selectedNames) ? selectedNames[0] : selectedNames.first;
+    const secondSelectedName = Array.isArray(selectedNames) ? selectedNames[1] : selectedNames.second;
+    const selectedSet = new Set([firstSelectedName, secondSelectedName].filter(Boolean));
+    const focusedInGraph = focusedName && nodes.some((d) => d.Name === focusedName);
     const brushedSet = new Set(brushedNames);
     const hasBrush = brushedSet.size > 0;
-    const connected = connectedNames(selectedInGraph ? selectedName : null, links);
+    const connected = connectedNames(focusedInGraph ? focusedName : null, links);
     const strongestNeighborLabels = new Set();
     const strongestLinkKeys = new Set();
-    if (selectedInGraph) {
+    if (focusedInGraph) {
       links
-        .filter((d) => d.sourceName === selectedName || d.targetName === selectedName)
+        .filter((d) => d.sourceName === focusedName || d.targetName === focusedName)
         .sort((a, b) => d3.descending(a.coUsagePercent, b.coUsagePercent))
         .slice(0, 8)
         .forEach((d, index) => {
-          const neighbor = d.sourceName === selectedName ? d.targetName : d.sourceName;
+          const neighbor = d.sourceName === focusedName ? d.targetName : d.sourceName;
           strongestNeighborLabels.add(neighbor);
           if (index < 5) strongestLinkKeys.add(`${d.sourceName}|${d.targetName}`);
         });
     }
-    const root = d3.select(containerRef.current);
+    const root = d3.select(graphLayerRef.current);
     const edgeWidth = d3.scaleLinear().domain(d3.extent(links, (d) => d.coUsagePercent)).range([0.8, 4.5]);
 
     root
@@ -1621,20 +1733,22 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
       .classed(
         "is-muted",
         (d) =>
-          (selectedInGraph && d.sourceName !== selectedName && d.targetName !== selectedName) ||
-          (!selectedInGraph && hasBrush && !brushedSet.has(d.sourceName) && !brushedSet.has(d.targetName)),
+          (focusedInGraph &&
+            d.sourceName !== focusedName &&
+            d.targetName !== focusedName) ||
+          (!focusedInGraph && hasBrush && !brushedSet.has(d.sourceName) && !brushedSet.has(d.targetName)),
       )
       .classed(
         "is-active",
         (d) =>
-          (selectedInGraph && (d.sourceName === selectedName || d.targetName === selectedName)) ||
-          (!selectedInGraph && hasBrush && (brushedSet.has(d.sourceName) || brushedSet.has(d.targetName))),
+          (focusedInGraph && (d.sourceName === focusedName || d.targetName === focusedName)) ||
+          (!focusedInGraph && hasBrush && (brushedSet.has(d.sourceName) || brushedSet.has(d.targetName))),
       )
-      .classed("is-key-link", (d) => selectedInGraph && strongestLinkKeys.has(`${d.sourceName}|${d.targetName}`))
+      .classed("is-key-link", (d) => focusedInGraph && strongestLinkKeys.has(`${d.sourceName}|${d.targetName}`))
       .style("stroke-width", (d) => {
         const baseWidth = edgeWidth(d.coUsagePercent);
-        if (selectedInGraph && strongestLinkKeys.has(`${d.sourceName}|${d.targetName}`)) return baseWidth + 2.2;
-        if (selectedInGraph && (d.sourceName === selectedName || d.targetName === selectedName)) return baseWidth + 1.2;
+        if (focusedInGraph && strongestLinkKeys.has(`${d.sourceName}|${d.targetName}`)) return baseWidth + 2.2;
+        if (focusedInGraph && (d.sourceName === focusedName || d.targetName === focusedName)) return baseWidth + 1.2;
         return baseWidth;
       });
 
@@ -1642,10 +1756,16 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
 
     root
       .selectAll(".node-group")
-      .classed("is-muted", (d) => (selectedInGraph && !connected.has(d.Name)) || (!selectedInGraph && hasBrush && !brushedSet.has(d.Name)))
-      .classed("is-selected", (d) => d.Name === selectedName)
-      .classed("is-neighbor", (d) => selectedInGraph && d.Name !== selectedName && connected.has(d.Name))
-      .classed("is-brushed", (d) => !selectedInGraph && hasBrush && brushedSet.has(d.Name));
+      .classed(
+        "is-muted",
+        (d) => (focusedInGraph && !connected.has(d.Name) && !selectedSet.has(d.Name)) || (!focusedInGraph && hasBrush && !brushedSet.has(d.Name)),
+      )
+      .classed("is-selected", (d) => selectedSet.has(d.Name))
+      .classed("is-first-selection", (d) => d.Name === firstSelectedName)
+      .classed("is-second-selection", (d) => d.Name === secondSelectedName)
+      .classed("is-focused", (d) => d.Name === focusedName)
+      .classed("is-neighbor", (d) => focusedInGraph && d.Name !== focusedName && connected.has(d.Name))
+      .classed("is-brushed", (d) => !focusedInGraph && hasBrush && brushedSet.has(d.Name));
 
     root
       .selectAll(".node-label")
@@ -1653,16 +1773,17 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
         "is-visible",
         (d) =>
           CASE_STUDIES.includes(d.Name) ||
-          (selectedInGraph && (d.Name === selectedName || strongestNeighborLabels.has(d.Name))) ||
-          (!selectedInGraph && brushedSet.size <= 12 && brushedSet.has(d.Name)),
+          selectedSet.has(d.Name) ||
+          (focusedInGraph && (d.Name === focusedName || strongestNeighborLabels.has(d.Name))) ||
+          (!focusedInGraph && brushedSet.size <= 12 && brushedSet.has(d.Name)),
       )
-      .classed("is-reveal-label", (d) => selectedInGraph && (d.Name === selectedName || strongestNeighborLabels.has(d.Name)));
+      .classed("is-reveal-label", (d) => focusedInGraph && (d.Name === focusedName || strongestNeighborLabels.has(d.Name)));
 
     root
       .selectAll(".archetype-label")
-      .classed("is-muted", (d) => selectedInGraph && d.anchorName !== selectedName && !connected.has(d.anchorName))
-      .classed("is-active", (d) => selectedInGraph && (d.anchorName === selectedName || connected.has(d.anchorName)));
-  }, [brushedNames, containerRef, links, nodes, selectedName]);
+      .classed("is-muted", (d) => focusedInGraph && d.anchorName !== focusedName && !connected.has(d.anchorName))
+      .classed("is-active", (d) => focusedInGraph && (d.anchorName === focusedName || connected.has(d.anchorName)));
+  }, [brushedNames, containerRef, focusedName, links, nodes, selectedNames]);
 
   return (
     <div
@@ -1671,6 +1792,7 @@ function NetworkGraph({ nodes, links, imageLookup, selectedName, brushedNames, o
       role="img"
       aria-label="Force-directed Pokémon team synergy network"
     >
+      <div ref={graphLayerRef} className="network-graph-layer" />
       {tooltip ? <NetworkTooltip pokemon={tooltip.d} imageLookup={imageLookup} x={tooltip.x} y={tooltip.y} /> : null}
     </div>
   );
@@ -1713,7 +1835,7 @@ function PokemonAvatar({ pokemon, imageLookup }) {
   );
 }
 
-function DetailPanel({ pokemon, builds, edges, imageLookup, allPokemon }) {
+function DetailPanel({ pokemon, builds, edges, imageLookup, allPokemon, selectionLabel = "Selected Pokémon" }) {
   const [activeTab, setActiveTab] = useState("evidence");
 
   useEffect(() => {
@@ -1723,7 +1845,7 @@ function DetailPanel({ pokemon, builds, edges, imageLookup, allPokemon }) {
   if (!pokemon) {
     return (
       <aside className="detail-panel" aria-live="polite">
-        <p className="section-label">Selected Pokémon</p>
+        <p className="section-label">{selectionLabel}</p>
         <h3>Choose a node</h3>
         <p className="panel-copy">Click a Pokémon in the network to see its team role, common partners, and build choices.</p>
       </aside>
@@ -1741,7 +1863,7 @@ function DetailPanel({ pokemon, builds, edges, imageLookup, allPokemon }) {
       <div className="pokemon-heading">
         <PokemonAvatar pokemon={pokemon} imageLookup={imageLookup} />
         <div>
-          <p className="section-label">Selected Pokémon</p>
+          <p className="section-label">{selectionLabel}</p>
           <h3>{pokemon.Name}</h3>
           <div className="type-row">
             <span style={{ "--type-color": typeColor(pokemon.Type1) }}>{pokemon.Type1}</span>
@@ -1856,122 +1978,83 @@ function subsetSummaryInterpretation(selectedAverage, datasetAverage) {
     : `This subset has ${statsComparison}, ${usageComparison}, and ${connectivityComparison}. Use the network view to check whether the brushed Pokémon share repeated teammate structure.`;
 }
 
-function profileForPokemon(pokemon, datasetAverage) {
-  const highStats = pokemon.Total >= datasetAverage.stats * 1.08;
-  const highConnectivity = pokemon.degree >= datasetAverage.degree * 1.25;
-  const highUsage = usageValue(pokemon) >= datasetAverage.usage * 1.25;
-
-  if (highConnectivity && !highStats) return "Connectivity";
-  if (highStats && !highConnectivity) return "High stats";
-  if (highConnectivity && highUsage) return "High usage + links";
-  return "Mixed";
+function formatSignedDelta(value, formatter) {
+  if (!Number.isFinite(value)) return "0";
+  const roundedValue = Math.round(value);
+  if (roundedValue === 0) return "0";
+  return `${roundedValue > 0 ? "+" : ""}${formatter(Math.abs(value) < 1 ? value : roundedValue)}`;
 }
 
-function subsetProfileRows(rows, datasetAverage) {
-  const profileOrder = ["Connectivity", "High stats", "High usage + links", "Mixed"];
-  const counts = new Map(profileOrder.map((profile) => [profile, 0]));
-  rows.forEach((pokemon) => {
-    const profile = profileForPokemon(pokemon, datasetAverage);
-    counts.set(profile, (counts.get(profile) || 0) + 1);
-  });
-  return profileOrder.map((profile) => ({ profile, count: counts.get(profile) || 0 })).filter((row) => row.count > 0);
-}
-
-function subsetProfileInterpretation(rows) {
-  if (!rows.length) return "Brush a larger subset to compare profile patterns.";
-  const total = d3.sum(rows, (d) => d.count);
-  const leader = rows.reduce((best, row) => (row.count > best.count ? row : best), rows[0]);
-  const share = total ? leader.count / total : 0;
-
-  if (share >= 0.5) {
-    return `${leader.profile} Pokémon make up ${formatPercent(share * 100)}% of this brushed subset. Treat this as a profile heuristic, not a ground-truth role label.`;
-  }
-
-  return "This brushed subset is mixed across profile types, so no single role-like pattern dominates.";
-}
-
-function FocusedSubsetAnalysisPanel({ brushedPokemon, datasetPokemon, onClearBrush }) {
-  const [analysisType, setAnalysisType] = useState("summary");
-  const selectedAverage = useMemo(() => subsetAverages(brushedPokemon), [brushedPokemon]);
-  const datasetAverage = useMemo(() => subsetAverages(datasetPokemon), [datasetPokemon]);
-  const profileRows = useMemo(() => subsetProfileRows(brushedPokemon, datasetAverage), [brushedPokemon, datasetAverage]);
-  const maxProfileCount = d3.max(profileRows, (d) => d.count) || 1;
-
-  return (
-    <aside className="detail-panel focused-subset-panel" aria-live="polite">
-      <div className="focused-subset-header">
-        <div>
-          <p className="section-label">Scatterplot brush</p>
-          <h3>Focused Subset Analysis</h3>
-        </div>
-        <div className="focused-subset-controls">
-          <label>
-            <span>Analysis Type</span>
-            <select value={analysisType} onChange={(event) => setAnalysisType(event.target.value)}>
-              <option value="summary">Summary</option>
-              <option value="profile">Role Distribution</option>
-            </select>
-          </label>
-          <button className="clear-brush-button" type="button" onClick={onClearBrush}>
-            Clear brush
-          </button>
-        </div>
-      </div>
-
-      <div className="subset-count">
-        <strong>{formatNumber(brushedPokemon.length)}</strong>
-        <span>selected Pokémon</span>
-      </div>
-
-      {analysisType === "summary" ? (
-        <>
-          <div className="subset-comparison-grid">
-            <SubsetMetricGroup title="Selected Group" averages={selectedAverage} />
-            <SubsetMetricGroup title="Dataset Average" averages={datasetAverage} />
-          </div>
-          <p className="subset-interpretation">{subsetSummaryInterpretation(selectedAverage, datasetAverage)}</p>
-        </>
-      ) : (
-        <section className="subset-profile-view" aria-label="Role-like profile distribution">
-          <h4>Subset profile</h4>
-          <p>Transparent heuristic based on stats, usage, and connectivity.</p>
-          <div className="subset-profile-bars">
-            {profileRows.map((row) => (
-              <div className="subset-profile-row" key={row.profile}>
-                <span>{row.profile}</span>
-                <div className="subset-profile-track">
-                  <i style={{ width: `${(row.count / maxProfileCount) * 100}%` }} />
-                </div>
-                <strong>{row.count}</strong>
-              </div>
-            ))}
-          </div>
-          <p className="subset-interpretation">{subsetProfileInterpretation(profileRows)}</p>
-        </section>
-      )}
-    </aside>
+function SelectionStatsPanel({ brushedPokemon, datasetPokemon, onClearBrush }) {
+  const hasSelection = brushedPokemon.length > 0;
+  const selectedAverage = useMemo(
+    () => subsetAverages(hasSelection ? brushedPokemon : datasetPokemon),
+    [brushedPokemon, datasetPokemon, hasSelection],
   );
-}
+  const datasetAverage = useMemo(() => subsetAverages(datasetPokemon), [datasetPokemon]);
+  const description = hasSelection
+    ? subsetSummaryInterpretation(selectedAverage, datasetAverage)
+    : "No subset selected. Brush the scatterplot to compare a selected group against the full plotted dataset.";
+  const metricRows = [
+    {
+      label: "Avg stats",
+      selected: Math.round(selectedAverage.stats),
+      dataset: Math.round(datasetAverage.stats),
+      delta: selectedAverage.stats - datasetAverage.stats,
+      formatter: formatNumber,
+    },
+    {
+      label: "Avg usage",
+      selected: `${formatPercent(selectedAverage.usage)}%`,
+      dataset: `${formatPercent(datasetAverage.usage)}%`,
+      delta: selectedAverage.usage - datasetAverage.usage,
+      formatter: (value) => `${formatPercent(value)}%`,
+    },
+    {
+      label: "Avg partners",
+      selected: Math.round(selectedAverage.degree),
+      dataset: Math.round(datasetAverage.degree),
+      delta: selectedAverage.degree - datasetAverage.degree,
+      formatter: formatNumber,
+    },
+  ];
 
-function SubsetMetricGroup({ title, averages }) {
   return (
-    <section className="subset-metric-group">
-      <h4>{title}</h4>
-      <dl>
+    <aside className="selection-stats-panel" aria-live="polite">
+      <div className="selection-stats-header">
         <div>
-          <dt>Avg Stats</dt>
-          <dd>{formatNumber(Math.round(averages.stats))}</dd>
+          <p className="section-label">Selection stats</p>
+          <h3>Selected group vs. full dataset</h3>
         </div>
-        <div>
-          <dt>Avg Usage</dt>
-          <dd>{formatPercent(averages.usage)}%</dd>
+        <button className="clear-brush-button" type="button" onClick={onClearBrush} disabled={!hasSelection}>
+          Clear brush
+        </button>
+      </div>
+
+      <div className="selection-stats-summary">
+        <div className="subset-count">
+          <strong>{formatNumber(brushedPokemon.length)}</strong>
+          <span>selected</span>
         </div>
-        <div>
-          <dt>Avg Connectivity</dt>
-          <dd>{formatNumber(Math.round(averages.degree))}</dd>
-        </div>
+        <p>{description}</p>
+      </div>
+
+      <dl className="selection-stat-grid" aria-label="Selected group compared with the full dataset">
+        {metricRows.map((metric) => {
+          const deltaClass = metric.delta > 0 ? "is-positive" : metric.delta < 0 ? "is-negative" : "";
+          return (
+            <div key={metric.label}>
+              <dt>{metric.label}</dt>
+              <dd>
+                <strong>{metric.selected}</strong>
+                <span>Full: {metric.dataset}</span>
+                <em className={deltaClass}>{formatSignedDelta(metric.delta, metric.formatter)}</em>
+              </dd>
+            </div>
+          );
+        })}
       </dl>
-    </section>
+    </aside>
   );
 }
 
@@ -2070,13 +2153,14 @@ export default function App() {
   const { data, error } = usePokemonData();
   const [selectedName, setSelectedName] = useState("Incineroar");
   const [comparisonName, setComparisonName] = useState("Zacian Crowned Sword");
+  const [activeComparisonSlot, setActiveComparisonSlot] = useState("second");
+  const [networkFocusName, setNetworkFocusName] = useState("Incineroar");
   const [brushedNames, setBrushedNames] = useState([]);
   const [activeStep, setActiveStep] = useState("assumption");
   const [pickerQuery, setPickerQuery] = useState("");
   const [pickerMode, setPickerMode] = useState("usage");
   const [activeMission, setActiveMission] = useState(null);
   const brushedKeyRef = useRef("");
-  const preBrushSelectedNameRef = useRef(selectedName);
   const storyStepLockRef = useRef(null);
   const storyVisibilityRef = useRef(new Map());
 
@@ -2099,6 +2183,10 @@ export default function App() {
     const brushedSet = new Set(brushedNames);
     return enrichedPokemon.filter((pokemon) => brushedSet.has(pokemon.Name));
   }, [brushedNames, enrichedPokemon]);
+  const scatterDatasetPokemon = useMemo(
+    () => enrichedPokemon.filter((pokemon) => pokemon.hasUsageData && Number.isFinite(pokemon.Total) && usageValue(pokemon) > 0),
+    [enrichedPokemon],
+  );
 
   const comparisonPokemon = useMemo(
     () => {
@@ -2114,6 +2202,7 @@ export default function App() {
     },
     [comparisonName, enrichedPokemon, selectedPokemon],
   );
+  const selectionNames = useMemo(() => ({ first: selectedName, second: comparisonName }), [comparisonName, selectedName]);
 
   useEffect(() => {
     if (!selectedPokemon || !enrichedPokemon.length) return;
@@ -2131,49 +2220,103 @@ export default function App() {
     if (fallback) setComparisonName(fallback.Name);
   }, [comparisonName, enrichedPokemon, selectedPokemon]);
 
-  const handleSelectName = useCallback((name, options = {}) => {
-    setSelectedName(name);
-    setBrushedNames([]);
-    brushedKeyRef.current = "";
-    setActiveMission(null);
-    if (options.scrollToNetwork) {
-      setActiveStep("reveal");
-      window.requestAnimationFrame(() => {
-        document.getElementById("network-title")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    }
-  }, []);
+  const handleSelectName = useCallback(
+    (name, options = {}) => {
+      const targetSlot = options.slot || activeComparisonSlot;
+      const isInsideBrush = name && brushedNames.includes(name);
+
+      if (targetSlot === "second") {
+        setComparisonName(name);
+      } else {
+        setSelectedName(name);
+      }
+
+      if (brushedNames.length && !isInsideBrush) {
+        setBrushedNames([]);
+        brushedKeyRef.current = "";
+      }
+
+      setNetworkFocusName(name || null);
+      setActiveMission(null);
+      if (options.scrollToNetwork) {
+        setActiveStep("reveal");
+        window.requestAnimationFrame(() => {
+          document.getElementById("network-title")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+    },
+    [activeComparisonSlot, brushedNames],
+  );
 
   const handleBrushNames = useCallback(
     (names) => {
       const nextKey = names.slice().sort().join("|");
       if (nextKey === brushedKeyRef.current) return;
       const wasBrushing = brushedKeyRef.current.length > 0;
-      if (names.length && !wasBrushing) {
-        preBrushSelectedNameRef.current = selectedName;
-      }
       brushedKeyRef.current = nextKey;
       setBrushedNames(names);
       if (names.length) {
         setActiveStep("contradiction");
-      } else if (wasBrushing) {
-        setSelectedName(preBrushSelectedNameRef.current);
+        if (!wasBrushing) {
+          setNetworkFocusName(null);
+        }
       }
     },
-    [selectedName],
+    [],
   );
 
   const handleClearBrush = useCallback(() => {
     brushedKeyRef.current = "";
     setBrushedNames([]);
-    setSelectedName(preBrushSelectedNameRef.current);
+    setNetworkFocusName(null);
   }, []);
+
+  const handleNetworkNodeSelect = useCallback(
+    (name) => {
+      if (!name) return;
+      setActiveStep("reveal");
+      setActiveMission(null);
+      setNetworkFocusName(name);
+
+      if (activeComparisonSlot === "first") {
+        setSelectedName(name);
+        return;
+      }
+
+      setComparisonName(name);
+    },
+    [activeComparisonSlot],
+  );
+
+  const handleNetworkBackgroundClick = useCallback(() => {
+    if (networkFocusName) {
+      setNetworkFocusName(null);
+      return;
+    }
+    if (brushedNames.length) {
+      handleClearBrush();
+    }
+  }, [brushedNames.length, handleClearBrush, networkFocusName]);
+
+  const handleComparisonSlotChange = useCallback(
+    (slot) => {
+      setActiveComparisonSlot(slot);
+      if (brushedNames.length) {
+        setNetworkFocusName(null);
+      } else {
+        setNetworkFocusName(slot === "first" ? selectedName : comparisonName);
+      }
+    },
+    [brushedNames.length, comparisonName, selectedName],
+  );
 
   const handleStoryStep = useCallback((step) => {
     setActiveStep(step.id);
     setSelectedName(step.selectedName || null);
     setBrushedNames([]);
     brushedKeyRef.current = "";
+    setNetworkFocusName(step.selectedName || null);
+    setActiveComparisonSlot("second");
     setActiveMission(null);
     storyStepLockRef.current = { id: step.id, targetId: step.targetId, minRatio: 0.2 };
     window.requestAnimationFrame(() => {
@@ -2191,6 +2334,8 @@ export default function App() {
       setPickerQuery("");
       setPickerMode("usage");
       setSelectedName("Amoonguss");
+      setNetworkFocusName("Amoonguss");
+      setActiveComparisonSlot("second");
       return;
     }
 
@@ -2198,6 +2343,8 @@ export default function App() {
       setPickerQuery("");
       setPickerMode("stats");
       setSelectedName("Zamazenta Crowned Shield");
+      setNetworkFocusName("Zamazenta Crowned Shield");
+      setActiveComparisonSlot("second");
       return;
     }
 
@@ -2206,6 +2353,8 @@ export default function App() {
       setPickerMode("usage");
       setSelectedName("Incineroar");
       setComparisonName("Zacian Crowned Sword");
+      setNetworkFocusName("Incineroar");
+      setActiveComparisonSlot("second");
       return;
     }
 
@@ -2287,14 +2436,8 @@ export default function App() {
     );
   }
 
-  const selectedInNetwork = selectedName && subset.nodes.some((d) => d.Name === selectedName);
-  const networkNote = brushedNames.length
-    ? `${brushedNames.length} Pokémon brushed in the scatterplot. Use the network to see whether those outliers share similar teammate structure.`
-    : selectedInNetwork
-    ? selectedName === INCINEROAR_REVEAL_NAME
-      ? "Incineroar succeeds because its teammate footprint stays broad across many successful team styles."
-      : "This selected Pokémon's usage depends on how broadly it fits into repeated teammate structures."
-    : "Click a Pokémon to test whether team connectivity explains its usage better than raw stats.";
+  const detailPokemon = activeComparisonSlot === "second" ? comparisonPokemon : selectedPokemon;
+  const detailSelectionLabel = activeComparisonSlot === "second" ? "Second selection" : "First selection";
 
   return (
     <main className="story-shell">
@@ -2316,7 +2459,6 @@ export default function App() {
         <HeroRoster
           pokemon={enrichedPokemon}
           imageLookup={data.imageLookup}
-          selectedName={selectedName}
           onSelect={handleSelectName}
         />
       </section>
@@ -2346,13 +2488,22 @@ export default function App() {
             ]}
           />
         </div>
-        <ComparisonChart
-          pokemon={enrichedPokemon}
-          selectedName={selectedName}
-          brushedNames={brushedNames}
-          onSelect={handleSelectName}
-          onBrush={handleBrushNames}
-        />
+        <div className="comparison-column">
+          <ComparisonChart
+            pokemon={enrichedPokemon}
+            selectedName={selectedName}
+            comparisonName={comparisonName}
+            activeSlot={activeComparisonSlot}
+            brushedNames={brushedNames}
+            onSelect={handleSelectName}
+            onBrush={handleBrushNames}
+          />
+          <SelectionStatsPanel
+            brushedPokemon={brushedPokemon}
+            datasetPokemon={scatterDatasetPokemon}
+            onClearBrush={handleClearBrush}
+          />
+        </div>
       </section>
 
       <ConnectivityBridge pokemon={enrichedPokemon} />
@@ -2363,16 +2514,6 @@ export default function App() {
             <p className="section-label">Team synergy network</p>
             <h2 id="network-title">Competitive success emerges from synergy.</h2>
           </div>
-          <aside className="network-intro-explanation" aria-label="Why look at a network">
-            <h3>Why look at a network?</h3>
-            <p>
-              If team fit explains usage better than raw stats, important Pokémon should appear inside larger and more
-              repeated teammate ecosystems.
-            </p>
-            <small>
-              Larger nodes are used more often. Thicker edges show stronger teammate co-usage.
-            </small>
-          </aside>
         </div>
         <StoryCallouts
           items={[
@@ -2388,56 +2529,54 @@ export default function App() {
               },
           ]}
         />
+        <aside className="network-intro-explanation" aria-label="Why look at a network">
+          <h3>Why look at a network?</h3>
+          <p>
+            If team fit explains usage better than raw stats, important Pokémon should appear inside larger and more
+            repeated teammate ecosystems.
+          </p>
+          <small>
+            Larger nodes are used more often. Thicker edges show stronger teammate co-usage.
+          </small>
+        </aside>
 
         <div className="network-layout">
           <div className="network-panel">
             <NetworkRevealCallout selectedPokemon={selectedPokemon} />
-            <div className="network-toolbar">
-              <button
-                className="reset-button"
-                type="button"
-                onClick={() => {
-                  setSelectedName(null);
-                  setBrushedNames([]);
-                }}
-              >
-                Reset selection
-              </button>
-              <span id="network-note">{networkNote}</span>
-            </div>
             <NetworkLegend />
             <NetworkGraph
               nodes={subset.nodes}
               links={subset.links}
               imageLookup={data.imageLookup}
-              selectedName={brushedNames.length ? null : selectedName}
+              focusedName={networkFocusName}
+              selectedNames={selectionNames}
               brushedNames={brushedNames}
-              onSelect={handleSelectName}
+              onNodeSelect={handleNetworkNodeSelect}
+              onBackgroundClick={handleNetworkBackgroundClick}
             />
           </div>
+          <ComparisonSlotSelector
+            selectedPokemon={selectedPokemon}
+            comparisonPokemon={comparisonPokemon}
+            activeSlot={activeComparisonSlot}
+            onActiveSlotChange={handleComparisonSlotChange}
+          />
           <EgoNetworkComparisonView
             selectedPokemon={selectedPokemon}
             comparisonPokemon={comparisonPokemon}
             pokemon={enrichedPokemon}
             edges={data.edges}
-            comparisonName={comparisonPokemon?.Name || comparisonName}
-            onComparisonChange={setComparisonName}
           />
-          {brushedNames.length ? (
-            <FocusedSubsetAnalysisPanel
-              brushedPokemon={brushedPokemon}
-              datasetPokemon={enrichedPokemon}
-              onClearBrush={handleClearBrush}
-            />
-          ) : (
+          <section className={`detail-selection-section is-${activeComparisonSlot}`} aria-label="Selected Pokémon details">
             <DetailPanel
-              pokemon={selectedPokemon}
+              pokemon={detailPokemon}
               builds={data.builds}
               edges={data.edges}
               imageLookup={data.imageLookup}
               allPokemon={enrichedPokemon}
+              selectionLabel={detailSelectionLabel}
             />
-          )}
+          </section>
         </div>
       </section>
 
@@ -2452,8 +2591,10 @@ export default function App() {
         <PokemonPicker
           pokemon={enrichedPokemon}
           imageLookup={data.imageLookup}
-          selectedPokemon={selectedPokemon}
+          selectedPokemon={detailPokemon}
           selectedName={selectedName}
+          comparisonName={comparisonName}
+          activeSlot={activeComparisonSlot}
           query={pickerQuery}
           mode={pickerMode}
           onQueryChange={setPickerQuery}

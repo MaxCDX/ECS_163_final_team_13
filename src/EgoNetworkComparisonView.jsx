@@ -24,17 +24,16 @@ const TYPE_COLORS = new Map([
 const formatPercent = d3.format(".0f");
 const formatNumber = d3.format(",");
 const formatWeighted = d3.format(",.0f");
-const CASE_COMPARISONS = ["Zacian Crowned Sword", "Incineroar", "Amoonguss", "Zamazenta Crowned Shield", "Kyogre"];
 const EGO_LAYOUTS = [
-  { x: -62, y: -22, labelAnchor: "end", maxLabelChars: 14 },
-  { x: 0, y: -38, labelAnchor: "middle", maxLabelChars: 16 },
-  { x: 62, y: -22, labelAnchor: "start", maxLabelChars: 14 },
+  { x: -110, y: -12, labelAnchor: "end", maxLabelChars: 14 },
+  { x: 0, y: -78, labelAnchor: "middle", maxLabelChars: 16 },
+  { x: 110, y: -12, labelAnchor: "start", maxLabelChars: 14 },
 ];
 const METRICS = [
   { label: "Usage", value: (pokemon) => usageValue(pokemon), format: (value) => `${formatPercent(value)}%` },
   { label: "Total Stats", value: (pokemon) => pokemon?.Total || 0, format: formatNumber },
-  { label: "Connectivity Degree", value: (pokemon) => pokemon?.degree || 0, format: formatNumber },
-  { label: "Teammate Footprint", value: (pokemon) => pokemon?.weightedDegree || 0, format: formatWeighted },
+  { label: "Partners", value: (pokemon) => pokemon?.degree || 0, format: formatNumber },
+  { label: "Footprint", value: (pokemon) => pokemon?.weightedDegree || 0, format: formatWeighted },
 ];
 
 function compactName(name = "") {
@@ -46,16 +45,17 @@ function labelDisplayName(name = "") {
     ["Zacian Crowned Sword", "Zacian"],
     ["Zamazenta Crowned Shield", "Zamazenta"],
     ["Calyrex Shadow Rider", "Calyrex Shadow"],
+    ["Calyrex Ice Rider", "Calyrex Ice"],
     ["Zygarde Complete Forme", "Zygarde Complete"],
     ["Wishiwashi Solo Form", "Wishiwashi Solo"],
+    ["Thundurus Incarnate Forme", "Thundurus"],
   ]);
   return replacements.get(name) || compactName(name);
 }
 
-function splitLabelLines(name = "", maxChars = 16) {
+function splitLabelLines(name = "", maxChars = 15) {
   const displayName = labelDisplayName(name);
   if (displayName.length <= maxChars) return [displayName];
-
   const words = displayName.split(/\s+/).filter(Boolean);
   if (words.length <= 1) return [displayName];
 
@@ -71,29 +71,7 @@ function splitLabelLines(name = "", maxChars = 16) {
     }
   }
 
-  if (bestSplit.length === 2 && bestSplit[0].length <= maxChars + 2 && bestSplit[1].length <= maxChars + 2) {
-    return bestSplit;
-  }
-
-  return [displayName];
-}
-
-function teammateLayout(index, name) {
-  const base = EGO_LAYOUTS[index] || EGO_LAYOUTS[EGO_LAYOUTS.length - 1];
-  const extra = Math.min(16, Math.max(0, compactName(name).length - 12) * 1.35);
-  if (index === 0) return { ...base, x: base.x - extra };
-  if (index === 2) return { ...base, x: base.x + extra };
-  return base;
-}
-
-function labelPosition(teammate, radius) {
-  if (teammate.labelAnchor === "end") {
-    return { x: teammate.x - radius - 8, y: teammate.y + 4 };
-  }
-  if (teammate.labelAnchor === "start") {
-    return { x: teammate.x + radius + 8, y: teammate.y + 4 };
-  }
-  return { x: teammate.x, y: teammate.y - radius - 8 };
+  return bestSplit;
 }
 
 function typeColor(type) {
@@ -104,66 +82,72 @@ function usageValue(pokemon) {
   return Number.isFinite(pokemon?.usagePercent) ? pokemon.usagePercent : 0;
 }
 
-function topTeammates(edges, name, limit = 3) {
-  return edges
+function topTeammates(edges, name, pokemonByName, limit = 3) {
+  if (!name) return [];
+  const byName = new Map();
+  edges
     .filter((edge) => edge.source === name || edge.target === name)
-    .map((edge) => ({
-      name: edge.source === name ? edge.target : edge.source,
-      strength: edge.coUsagePercent,
-    }))
+    .forEach((edge) => {
+      const teammateName = edge.source === name ? edge.target : edge.source;
+      const current = byName.get(teammateName);
+      if (!current || edge.coUsagePercent > current.strength) {
+        byName.set(teammateName, {
+          name: teammateName,
+          pokemon: pokemonByName.get(teammateName),
+          strength: edge.coUsagePercent,
+        });
+      }
+    });
+
+  return [...byName.values()]
     .sort((a, b) => d3.descending(a.strength, b.strength))
-    .slice(0, limit);
+    .slice(0, limit)
+    .map((teammate, index) => ({
+      ...teammate,
+      ...EGO_LAYOUTS[index],
+      rank: index + 1,
+    }));
 }
 
 function buildEgo(pokemon, edges, pokemonByName) {
-  if (!pokemon) return { center: null, teammates: [], links: [] };
-  const teammates = topTeammates(edges, pokemon.Name).map((teammate, index) => ({
-    ...teammate,
-    pokemon: pokemonByName.get(teammate.name),
-    ...teammateLayout(index, teammate.name),
-  }));
+  if (!pokemon) return { center: null, teammates: [] };
   return {
     center: pokemon,
-    teammates,
-    links: teammates.map((teammate) => ({
-      target: teammate.name,
-      strength: teammate.strength,
-    })),
+    teammates: topTeammates(edges, pokemon.Name, pokemonByName),
   };
 }
 
-function comparisonOptions(pokemon, selectedName) {
-  const byName = new Map(pokemon.map((entry) => [entry.Name, entry]));
-  const caseOptions = CASE_COMPARISONS.map((name) => byName.get(name)).filter(Boolean);
-  const topUsage = pokemon
-    .filter((entry) => entry.hasUsageData && usageValue(entry) > 0)
-    .sort((a, b) => d3.descending(usageValue(a), usageValue(b)))
-    .slice(0, 8);
-  const seen = new Set();
-  return [...caseOptions, ...topUsage].filter((entry) => {
-    if (!entry || entry.Name === selectedName || seen.has(entry.Name)) return false;
-    seen.add(entry.Name);
-    return true;
-  });
+function labelPoint(teammate, radius) {
+  if (teammate.labelAnchor === "end") return { x: teammate.x - radius - 9, y: teammate.y + 4 };
+  if (teammate.labelAnchor === "start") return { x: teammate.x + radius + 9, y: teammate.y + 4 };
+  return { x: teammate.x, y: teammate.y - radius - 10 };
 }
 
 function insightFor(a, b, sharedCount) {
-  if (!a || !b) return "Select two Pokémon to compare their teammate networks.";
+  if (!a || !b) return "Select two Pokémon in the network to compare their teammate structures.";
   if ((a.Total || 0) < (b.Total || 0) && (a.weightedDegree || 0) > (b.weightedDegree || 0)) {
     return `${compactName(a.Name)} has lower raw stats but a broader teammate footprint.`;
   }
   if ((b.Total || 0) < (a.Total || 0) && (b.weightedDegree || 0) > (a.weightedDegree || 0)) {
     return `${compactName(b.Name)} has lower raw stats but a broader teammate footprint.`;
   }
-  if (sharedCount >= 2) return "Both Pokémon share several central teammates despite different roles.";
-  return `${compactName(a.Name)} and ${compactName(b.Name)} rely on different teammate cores.`;
+  if (sharedCount >= 2) return "Both selections share several central teammates despite different roles.";
+  if (sharedCount === 1) return "The two selections overlap through one visible teammate link.";
+  return `${compactName(a.Name)} and ${compactName(b.Name)} rely on different visible teammate cores.`;
 }
 
 function EgoGraph({ ego, origin, sharedNames, radiusScale, edgeWidthScale }) {
-  if (!ego.center) return null;
   const [originX, originY] = origin;
-  const centerRadius = radiusScale(usageValue(ego.center)) + 3;
-  const centerLabelLines = splitLabelLines(ego.center.Name, 16);
+  if (!ego.center) {
+    return (
+      <text className="ego-empty-label" x={originX} y={originY} textAnchor="middle">
+        Empty selection
+      </text>
+    );
+  }
+
+  const centerRadius = 22;
+  const centerLines = splitLabelLines(ego.center.Name, 18);
 
   return (
     <g className="ego-mini-network" transform={`translate(${originX},${originY})`}>
@@ -172,7 +156,7 @@ function EgoGraph({ ego, origin, sharedNames, radiusScale, edgeWidthScale }) {
         return (
           <line
             className={isShared ? "is-shared" : "is-unique"}
-            key={`${ego.center.Name}-${teammate.name}`}
+            key={`${ego.center.Name}-${teammate.name}-link`}
             x1="0"
             y1="0"
             x2={teammate.x}
@@ -181,70 +165,82 @@ function EgoGraph({ ego, origin, sharedNames, radiusScale, edgeWidthScale }) {
           />
         );
       })}
-      <circle className="ego-center-node" cx="0" cy="0" r={centerRadius} fill={typeColor(ego.center.Type1)} />
-      <text className="ego-center-label" x="0" y={centerRadius + 18} textAnchor="middle">
-        {centerLabelLines.map((line, index) => (
-          <tspan key={`${ego.center.Name}-${line}`} x="0" dy={index === 0 ? 0 : 11}>
-            {line}
-          </tspan>
-        ))}
-        <title>{ego.center.Name}</title>
-      </text>
       {ego.teammates.map((teammate) => {
         const isShared = sharedNames.has(teammate.name);
         const teammateRadius = radiusScale(usageValue(teammate.pokemon));
-        const labelLines = splitLabelLines(teammate.name, teammate.maxLabelChars);
-        const labelPoint = labelPosition(teammate, teammateRadius);
+        const point = labelPoint(teammate, teammateRadius);
         return (
-          <g className={`ego-teammate-node${isShared ? " is-shared" : " is-unique"}`} key={teammate.name}>
+          <g className={`ego-teammate-node${isShared ? " is-shared" : " is-unique"}`} key={`${ego.center.Name}-${teammate.name}`}>
             <circle
               cx={teammate.x}
               cy={teammate.y}
               r={teammateRadius}
               fill={isShared ? "#f2b56b" : typeColor(teammate.pokemon?.Type1)}
-            />
-            <text x={labelPoint.x} y={labelPoint.y} textAnchor={teammate.labelAnchor}>
-              {labelLines.map((line, index) => (
-                <tspan key={`${teammate.name}-${line}`} x={labelPoint.x} dy={index === 0 ? 0 : 10}>
+            >
+              <title>
+                {teammate.name}: {formatPercent(teammate.strength)}% co-usage
+              </title>
+            </circle>
+            <text x={point.x} y={point.y} textAnchor={teammate.labelAnchor}>
+              {splitLabelLines(teammate.name, teammate.maxLabelChars).map((line, index) => (
+                <tspan key={`${ego.center.Name}-${teammate.name}-${line}`} x={point.x} dy={index === 0 ? 0 : 10}>
                   {line}
                 </tspan>
               ))}
-              <title>{teammate.name}</title>
             </text>
           </g>
         );
       })}
+      <circle className="ego-center-node" cx="0" cy="0" r={centerRadius} fill={typeColor(ego.center.Type1)} />
+      <text className="ego-center-label" x="0" y={centerRadius + 17} textAnchor="middle">
+        {centerLines.map((line, index) => (
+          <tspan key={`${ego.center.Name}-${line}`} x="0" dy={index === 0 ? 0 : 11}>
+            {line}
+          </tspan>
+        ))}
+      </text>
     </g>
   );
 }
 
-function MetricRows({ pokemonA, pokemonB }) {
+function metricRows(pokemonA, pokemonB) {
+  return METRICS.map((metric) => {
+    const valueA = metric.value(pokemonA);
+    const valueB = metric.value(pokemonB);
+    const maxValue = Math.max(valueA, valueB, 1);
+    return {
+      label: metric.label,
+      valueA,
+      valueB,
+      formattedA: metric.format(valueA),
+      formattedB: metric.format(valueB),
+      widthA: (valueA / maxValue) * 100,
+      widthB: (valueB / maxValue) * 100,
+    };
+  });
+}
+
+function MetricComparison({ pokemonA, pokemonB }) {
+  const rows = metricRows(pokemonA, pokemonB);
+
   return (
-    <g className="ego-metric-rows" transform="translate(0,145)">
-      {METRICS.map((metric, index) => {
-        const valueA = metric.value(pokemonA);
-        const valueB = metric.value(pokemonB);
-        const scale = d3.scaleLinear().domain([0, Math.max(valueA, valueB, 1)]).range([0, 160]);
-        const y = index * 20;
-        return (
-          <g key={metric.label} transform={`translate(0,${y})`}>
-            <text className="ego-metric-label" x="38" y="11">
-              {metric.label}
-            </text>
-            <rect className="ego-metric-track" x="172" y="4" width="160" height="8" rx="4" />
-            <rect className="ego-metric-bar is-a" x="172" y="4" width={scale(valueA)} height="8" rx="4" />
-            <text className="ego-metric-value is-a" x="340" y="11">
-              {metric.format(valueA)}
-            </text>
-            <rect className="ego-metric-track" x="430" y="4" width="160" height="8" rx="4" />
-            <rect className="ego-metric-bar is-b" x={590 - scale(valueB)} y="4" width={scale(valueB)} height="8" rx="4" />
-            <text className="ego-metric-value is-b" x="420" y="11" textAnchor="end">
-              {metric.format(valueB)}
-            </text>
-          </g>
-        );
-      })}
-    </g>
+    <dl className="ego-metric-rows" aria-label="Ego comparison metrics">
+      {rows.map((metric) => (
+        <div key={metric.label}>
+          <dt>{metric.label}</dt>
+          <dd>
+            <span className="ego-metric-track is-a">
+              <i style={{ width: `${metric.widthA}%` }} />
+            </span>
+            <strong className="is-a">{metric.formattedA}</strong>
+            <strong className="is-b">{metric.formattedB}</strong>
+            <span className="ego-metric-track is-b">
+              <i style={{ width: `${metric.widthB}%` }} />
+            </span>
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -253,11 +249,7 @@ export default function EgoNetworkComparisonView({
   comparisonPokemon,
   pokemon,
   edges,
-  comparisonName,
-  onComparisonChange,
 }) {
-  if (!selectedPokemon || !comparisonPokemon) return null;
-
   const pokemonByName = new Map(pokemon.map((entry) => [entry.Name, entry]));
   const egoA = buildEgo(selectedPokemon, edges, pokemonByName);
   const egoB = buildEgo(comparisonPokemon, edges, pokemonByName);
@@ -265,16 +257,15 @@ export default function EgoNetworkComparisonView({
   const teammateNamesB = new Set(egoB.teammates.map((teammate) => teammate.name));
   const sharedNames = new Set([...teammateNamesA].filter((name) => teammateNamesB.has(name)));
   const allNodes = [egoA.center, egoB.center, ...egoA.teammates.map((d) => d.pokemon), ...egoB.teammates.map((d) => d.pokemon)].filter(Boolean);
-  const allLinks = [...egoA.links, ...egoB.links];
+  const allLinks = [...egoA.teammates, ...egoB.teammates];
   const radiusScale = d3
     .scaleSqrt()
     .domain([0, Math.max(70, d3.max(allNodes, usageValue) || 0)])
-    .range([6, 17]);
+    .range([7, 17]);
   const edgeWidthScale = d3
     .scaleLinear()
     .domain([0, Math.max(100, d3.max(allLinks, (link) => link.strength) || 0)])
-    .range([1.2, 6.8]);
-  const options = comparisonOptions(pokemon, selectedPokemon.Name);
+    .range([1.4, 6.2]);
   const insight = insightFor(selectedPokemon, comparisonPokemon, sharedNames.size);
 
   return (
@@ -282,18 +273,8 @@ export default function EgoNetworkComparisonView({
       <div className="ego-comparison-header">
         <div>
           <p className="section-label">Ego network comparison</p>
-          <h3 id="ego-comparison-title">How do stats and teammate footprint differ?</h3>
+          <h3 id="ego-comparison-title">Compare two selected teammate subnetworks.</h3>
         </div>
-        <label className="ego-comparison-selector">
-          <span>Compare with</span>
-          <select value={comparisonName} onChange={(event) => onComparisonChange(event.target.value)}>
-            {options.map((option) => (
-              <option key={option.Name} value={option.Name}>
-                {option.Name}
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
 
       <div className="ego-comparison-legend" aria-label="Ego comparison encodings">
@@ -315,20 +296,19 @@ export default function EgoNetworkComparisonView({
         </span>
       </div>
 
-      <svg className="ego-comparison-svg" viewBox="0 0 640 240" role="img" aria-label="Ego network comparison">
-        <text className="ego-column-title" x="170" y="20" textAnchor="middle">
-          {compactName(selectedPokemon.Name)}
+      <svg className="ego-comparison-svg" viewBox="0 0 960 292" role="img" aria-label="Ego network comparison">
+        <text className="ego-column-title" x="240" y="32" textAnchor="middle">
+          {selectedPokemon ? compactName(selectedPokemon.Name) : "First selection"}
         </text>
-        <text className="ego-column-title" x="492" y="20" textAnchor="middle">
-          {compactName(comparisonPokemon.Name)}
+        <text className="ego-column-title" x="720" y="32" textAnchor="middle">
+          {comparisonPokemon ? compactName(comparisonPokemon.Name) : "Second selection"}
         </text>
-        <EgoGraph ego={egoA} origin={[145, 102]} sharedNames={sharedNames} radiusScale={radiusScale} edgeWidthScale={edgeWidthScale} />
-        <EgoGraph ego={egoB} origin={[495, 102]} sharedNames={sharedNames} radiusScale={radiusScale} edgeWidthScale={edgeWidthScale} />
-        <MetricRows pokemonA={selectedPokemon} pokemonB={comparisonPokemon} />
-        <text className="ego-insight" x="320" y="232" textAnchor="middle">
-          {insight}
-        </text>
+        <EgoGraph ego={egoA} origin={[240, 148]} sharedNames={sharedNames} radiusScale={radiusScale} edgeWidthScale={edgeWidthScale} />
+        <EgoGraph ego={egoB} origin={[720, 148]} sharedNames={sharedNames} radiusScale={radiusScale} edgeWidthScale={edgeWidthScale} />
       </svg>
+
+      {selectedPokemon && comparisonPokemon ? <MetricComparison pokemonA={selectedPokemon} pokemonB={comparisonPokemon} /> : null}
+      <p className="ego-insight-text">{insight}</p>
     </section>
   );
 }
