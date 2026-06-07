@@ -131,7 +131,7 @@ These files are already included and are sufficient for a fresh-clone run:
 
 No preprocessing is required. These small processed CSVs are included so you can run the visualization immediately.
 
-The original raw datasets are uploaded. The original datasets used during preprocessing were:
+The original datasets used during preprocessing were:
 
 - [Complete Competitive Pokemon Database (2022)](https://www.kaggle.com/datasets/giorgiocarbone/complete-competitive-pokmon-datasets-may-2022)
 - [Dataset of 32000 Pokemon Images](https://www.kaggle.com/datasets/divyanshusingh369/complete-pokemon-library-32k-images-and-csv)
