@@ -226,6 +226,12 @@ Common issues:
 - If local Pokemon sprites do not appear, confirm that `public/assets/pokemon/` is present.
 - If optional preprocessing fails, confirm that `pandas` is installed and the original source data folders are present.
 
+To install the Python dependency needed for optional preprocessing or validation:
+
+```bash
+python3 -m pip install pandas
+```
+
 Copy-paste verification commands:
 
 ```bash
