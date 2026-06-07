@@ -37,7 +37,7 @@ export default function PokemonPicker({
     <section className="pokemon-picker-section" aria-labelledby="pokemon-picker-title">
       <div className="picker-copy">
         <p className="section-label">Pick a focus</p>
-        <h2 id="pokemon-picker-title">Choose a Pokémon to examine.</h2>
+        <h2 id="pokemon-picker-title">Choose a Pokemon to examine.</h2>
         <p>
           Search directly, or use the ranked shortcuts to test whether usage, raw stats, and team synergy point to the
           same names.
@@ -130,7 +130,7 @@ export default function PokemonPicker({
               </button>
             ))
           ) : (
-            <p className="picker-empty">No Pokémon match that search.</p>
+            <p className="picker-empty">No Pokemon match that search.</p>
           )}
         </div>
       </div>

@@ -7,10 +7,10 @@ function HeroRoster({ pokemon, imageLookup, onSelect }) {
   const featured = CASE_STUDIES.map((name) => pokemon.find((d) => d.Name === name)).filter(Boolean).slice(0, 6);
 
   return (
-    <aside className="hero-roster" aria-label="Featured Pokémon in the network">
+    <aside className="hero-roster" aria-label="Featured Pokemon in the network">
       <div className="hero-roster-header">
         <span>{featured.length}</span>
-        <p>case-study Pokémon</p>
+        <p>case-study Pokemon</p>
       </div>
       <div className="hero-sprite-grid">
         {featured.map((d) => (
@@ -42,15 +42,15 @@ export default function HeroSection({ pokemon, edges, builds, imageLookup, onSel
   return (
     <section id="assumption-section" className="hero" aria-labelledby="hero-title">
       <div>
-        <p className="section-label">Team 13 · competitive Pokémon data story</p>
+        <p className="section-label">Team 13 · competitive Pokemon data story</p>
         <h1 id="hero-title">Raw power matters. Team fit matters too.</h1>
         <p className="data-kicker">VGC stats, usage, teammate networks, roles, moves, items, and abilities</p>
         <p>
-          If raw stats alone explained competitive success, the strongest Pokémon should also be the most used. This
+          If raw stats alone explained competitive success, the strongest Pokemon should also be the most used. This
           story tests that assumption.
         </p>
         <div className="hero-facts" aria-label="Dataset summary">
-          <span>{formatNumber(pokemon.length)} Pokémon</span>
+          <span>{formatNumber(pokemon.length)} Pokemon</span>
           <span>{formatNumber(edges.length)} teammate links</span>
           <span>{formatNumber(builds.length)} build records</span>
         </div>

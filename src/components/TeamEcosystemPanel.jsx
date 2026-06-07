@@ -208,7 +208,7 @@ function fallbackCore(selectedPokemon, teammates) {
   if (teammates.length < 2) {
     return {
       members: [selectedPokemon.Name],
-      interpretation: "No team core evidence available for this Pokémon.",
+      interpretation: "No team core evidence available for this Pokemon.",
     };
   }
   const topPartners = teammates.slice(0, 2).map((teammate) => compactName(teammate.name));

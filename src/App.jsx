@@ -952,7 +952,7 @@ function NetworkGraph({ nodes, links, imageLookup, focusedName, selectedNames = 
       ref={containerRef}
       className="network-graph"
       role="img"
-      aria-label="Force-directed Pokémon team synergy network"
+      aria-label="Force-directed Pokemon team synergy network"
     >
       <div ref={graphLayerRef} className="network-graph-layer" />
       {tooltip ? <NetworkTooltip pokemon={tooltip.d} imageLookup={imageLookup} x={tooltip.x} y={tooltip.y} /> : null}
@@ -997,7 +997,7 @@ function PokemonAvatar({ pokemon, imageLookup }) {
   );
 }
 
-function DetailPanel({ pokemon, builds, edges, imageLookup, allPokemon, selectionLabel = "Selected Pokémon" }) {
+function DetailPanel({ pokemon, builds, edges, imageLookup, allPokemon, selectionLabel = "Selected Pokemon" }) {
   const [activeTab, setActiveTab] = useState("evidence");
 
   useEffect(() => {
@@ -1009,7 +1009,7 @@ function DetailPanel({ pokemon, builds, edges, imageLookup, allPokemon, selectio
       <aside className="detail-panel" aria-live="polite">
         <p className="section-label">{selectionLabel}</p>
         <h3>Choose a node</h3>
-        <p className="panel-copy">Click a Pokémon in the network to see its team role, common partners, and build choices.</p>
+        <p className="panel-copy">Click a Pokemon in the network to see its team role, common partners, and build choices.</p>
       </aside>
     );
   }
@@ -1034,7 +1034,7 @@ function DetailPanel({ pokemon, builds, edges, imageLookup, allPokemon, selectio
         </div>
       </div>
 
-      <dl className="metric-strip" aria-label="Selected Pokémon metrics">
+      <dl className="metric-strip" aria-label="Selected Pokemon metrics">
         <div>
           <dt>Total stats</dt>
           <dd>{formatNumber(pokemon.Total)}</dd>
@@ -1057,7 +1057,7 @@ function DetailPanel({ pokemon, builds, edges, imageLookup, allPokemon, selectio
         </div>
       </dl>
 
-      <div className="detail-tabs" role="tablist" aria-label="Selected Pokémon detail sections">
+      <div className="detail-tabs" role="tablist" aria-label="Selected Pokemon detail sections">
         {DETAIL_TABS.map((tab) => (
           <button
             aria-controls={`detail-tab-${tab.id}`}
@@ -1478,7 +1478,7 @@ export default function App() {
   if (error) {
     return (
       <main className="story-shell">
-        <p className="load-error">Could not load the processed Pokémon data. {error.message}</p>
+        <p className="load-error">Could not load the processed Pokemon data. {error.message}</p>
       </main>
     );
   }
@@ -1486,7 +1486,7 @@ export default function App() {
   if (!data) {
     return (
       <main className="story-shell">
-        <p className="load-error">Loading processed Pokémon data...</p>
+        <p className="load-error">Loading processed Pokemon data...</p>
       </main>
     );
   }
@@ -1511,7 +1511,7 @@ export default function App() {
           <p className="section-label">Stat total vs. usage</p>
           <h2 id="guided-title">High stats do not guarantee high usage.</h2>
           <p>
-            If stronger Pokémon were always used more, the highest stats would cluster at the top. Instead, the
+            If stronger Pokemon were always used more, the highest stats would cluster at the top. Instead, the
             relationship is weak: Zacian fits the assumption, Zamazenta challenges it, and Incineroar breaks it.
           </p>
           <StoryCallouts
@@ -1519,7 +1519,7 @@ export default function App() {
               {
                 label: "01",
                 title: "Stat total is a weak predictor",
-                body: "The trend line is shallow, so high base stats alone do not explain which Pokémon dominate usage.",
+                body: "The trend line is shallow, so high base stats alone do not explain which Pokemon dominate usage.",
               },
               {
                 label: "02",
@@ -1566,14 +1566,14 @@ export default function App() {
               {
                 label: "04",
                 title: "Team fit explains usage",
-                body: "The strongest competitive Pokémon are not just powerful. They also sit inside larger, repeated teammate structures.",
+                body: "The strongest competitive Pokemon are not just powerful. They also sit inside larger, repeated teammate structures.",
               },
           ]}
         />
         <aside className="network-intro-explanation" aria-label="Why look at a network">
           <h3>Why look at a network?</h3>
           <p>
-            If team fit explains usage better than raw stats, important Pokémon should appear inside larger and more
+            If team fit explains usage better than raw stats, important Pokemon should appear inside larger and more
             repeated teammate ecosystems.
           </p>
           <small>
@@ -1608,7 +1608,7 @@ export default function App() {
             pokemon={enrichedPokemon}
             edges={data.edges}
           />
-          <section className={`detail-selection-section is-${activeComparisonSlot}`} aria-label="Selected Pokémon details">
+          <section className={`detail-selection-section is-${activeComparisonSlot}`} aria-label="Selected Pokemon details">
             <DetailPanel
               pokemon={detailPokemon}
               builds={data.builds}

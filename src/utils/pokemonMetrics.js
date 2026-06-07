@@ -125,7 +125,7 @@ export function subsetSummaryInterpretation(selectedAverage, datasetAverage) {
 
   return thesisSignal
     ? `This subset has ${statsComparison}, but ${usageComparison} and ${connectivityComparison}. That pattern is consistent with team fit adding value beyond raw power.`
-    : `This subset has ${statsComparison}, ${usageComparison}, and ${connectivityComparison}. Use the network view to check whether the brushed Pokémon share repeated teammate structure.`;
+    : `This subset has ${statsComparison}, ${usageComparison}, and ${connectivityComparison}. Use the network view to check whether the brushed Pokemon share repeated teammate structure.`;
 }
 
 export function formatSignedDelta(value, formatter) {

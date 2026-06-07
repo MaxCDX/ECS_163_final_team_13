@@ -128,7 +128,7 @@ function labelPoint(teammate, radius) {
 }
 
 function insightFor(a, b, sharedCount) {
-  if (!a || !b) return "Select two Pokémon in the network to compare their teammate structures.";
+  if (!a || !b) return "Select two Pokemon in the network to compare their teammate structures.";
   if ((a.Total || 0) < (b.Total || 0) && (a.weightedDegree || 0) > (b.weightedDegree || 0)) {
     return `${compactName(a.Name)} has lower raw stats but a broader teammate footprint.`;
   }

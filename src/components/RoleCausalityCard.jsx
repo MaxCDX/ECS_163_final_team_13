@@ -238,7 +238,7 @@ function fallbackRoleFlow({ selectedPokemon, abilities = [], moves = [], items =
   if (steps.length < 2) {
     return {
       steps: [],
-      outcome: "No role evidence available for this Pokémon.",
+      outcome: "No role evidence available for this Pokemon.",
     };
   }
 
