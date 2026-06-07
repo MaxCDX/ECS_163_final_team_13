@@ -603,10 +603,18 @@ function usePokemonData() {
 function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrush }) {
   const [containerRef, width] = useElementWidth();
   const onBrushRef = useRef(onBrush);
+  const brushedNamesRef = useRef(brushedNames);
+  const ignoreNextSvgClickRef = useRef(false);
+  const brushBehaviorRef = useRef(null);
+  const brushLayerRef = useRef(null);
 
   useEffect(() => {
     onBrushRef.current = onBrush;
   }, [onBrush]);
+
+  useEffect(() => {
+    brushedNamesRef.current = brushedNames;
+  }, [brushedNames]);
 
   useEffect(() => {
     if (!width || !pokemon.length) return undefined;
@@ -712,8 +720,14 @@ function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrus
       ])
       .on("brush end", (event) => {
         if (!event.selection) {
+          if (brushedNamesRef.current.length) {
+            ignoreNextSvgClickRef.current = true;
+          }
           onBrushRef.current([]);
           return;
+        }
+        if (event.type === "end") {
+          ignoreNextSvgClickRef.current = true;
         }
 
         const [[x0, y0], [x1, y1]] = event.selection;
@@ -727,7 +741,20 @@ function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrus
         onBrushRef.current(names);
       });
 
-    svg.append("g").attr("class", "scatter-brush").call(brush);
+    const brushLayer = svg.append("g").attr("class", "scatter-brush").call(brush);
+    brushBehaviorRef.current = brush;
+    brushLayerRef.current = brushLayer.node();
+
+    const clearActiveBrush = (event) => {
+      if (!brushedNamesRef.current.length) return;
+      event.stopPropagation();
+      ignoreNextSvgClickRef.current = true;
+      brushLayer.call(brush.move, null);
+    };
+
+    brushLayer.select(".overlay").on("click.clear-brush", clearActiveBrush);
+    brushLayer.select(".selection").on("click.clear-brush", clearActiveBrush);
+    brushLayer.node()?.addEventListener("click", clearActiveBrush, true);
 
     svg
       .append("g")
@@ -768,7 +795,18 @@ function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrus
       .attr("text-anchor", (d) => comparisonLabelPlacement(x(d.Total), compactName(d.Name), margin.left, width - margin.right).anchor)
       .text((d) => compactName(d.Name));
 
-    svg.on("click", () => onSelect(null));
+    svg.on("click", () => {
+      if (ignoreNextSvgClickRef.current) {
+        ignoreNextSvgClickRef.current = false;
+        return;
+      }
+      if (brushedNamesRef.current.length) {
+        ignoreNextSvgClickRef.current = true;
+        brushLayer.call(brush.move, null);
+        return;
+      }
+      onSelect(null);
+    });
 
     return () => root.selectAll("*").remove();
   }, [containerRef, onSelect, pokemon, selectedName, width]);
@@ -778,6 +816,10 @@ function ComparisonChart({ pokemon, selectedName, brushedNames, onSelect, onBrus
     d3.select(containerRef.current)
       .selectAll(".comparison-dot")
       .classed("is-brushed", (d) => brushedSet.has(d.Name));
+
+    if (!brushedNames.length && brushLayerRef.current && brushBehaviorRef.current) {
+      d3.select(brushLayerRef.current).call(brushBehaviorRef.current.move, null);
+    }
   }, [brushedNames, containerRef]);
 
   return (
@@ -1778,6 +1820,161 @@ function DetailPanel({ pokemon, builds, edges, imageLookup, allPokemon }) {
   );
 }
 
+function averageValue(rows, accessor) {
+  const values = rows.map(accessor).filter((value) => Number.isFinite(value));
+  if (!values.length) return 0;
+  return d3.mean(values) || 0;
+}
+
+function subsetAverages(rows) {
+  return {
+    stats: averageValue(rows, (d) => d.Total),
+    usage: averageValue(rows, usageValue),
+    degree: averageValue(rows, (d) => d.degree),
+  };
+}
+
+function compareAverage(value, baseline, label, formatter, threshold = 0.08) {
+  const delta = value - baseline;
+  const scale = Math.max(Math.abs(baseline), 1);
+  if (Math.abs(delta) / scale < threshold) return `near-average ${label}`;
+  return `${delta > 0 ? "higher-than-average" : "lower-than-average"} ${label}`;
+}
+
+function subsetSummaryInterpretation(selectedAverage, datasetAverage) {
+  const statsComparison = compareAverage(selectedAverage.stats, datasetAverage.stats, "stats", formatNumber, 0.04);
+  const usageComparison = compareAverage(selectedAverage.usage, datasetAverage.usage, "usage", formatPercent, 0.12);
+  const connectivityComparison = compareAverage(selectedAverage.degree, datasetAverage.degree, "connectivity", formatNumber, 0.12);
+
+  const thesisSignal =
+    selectedAverage.stats < datasetAverage.stats * 0.96 &&
+    selectedAverage.usage > datasetAverage.usage * 1.12 &&
+    selectedAverage.degree > datasetAverage.degree * 1.12;
+
+  return thesisSignal
+    ? `This subset has ${statsComparison}, but ${usageComparison} and ${connectivityComparison}. That pattern is consistent with team fit adding value beyond raw power.`
+    : `This subset has ${statsComparison}, ${usageComparison}, and ${connectivityComparison}. Use the network view to check whether the brushed Pokémon share repeated teammate structure.`;
+}
+
+function profileForPokemon(pokemon, datasetAverage) {
+  const highStats = pokemon.Total >= datasetAverage.stats * 1.08;
+  const highConnectivity = pokemon.degree >= datasetAverage.degree * 1.25;
+  const highUsage = usageValue(pokemon) >= datasetAverage.usage * 1.25;
+
+  if (highConnectivity && !highStats) return "Connectivity";
+  if (highStats && !highConnectivity) return "High stats";
+  if (highConnectivity && highUsage) return "High usage + links";
+  return "Mixed";
+}
+
+function subsetProfileRows(rows, datasetAverage) {
+  const profileOrder = ["Connectivity", "High stats", "High usage + links", "Mixed"];
+  const counts = new Map(profileOrder.map((profile) => [profile, 0]));
+  rows.forEach((pokemon) => {
+    const profile = profileForPokemon(pokemon, datasetAverage);
+    counts.set(profile, (counts.get(profile) || 0) + 1);
+  });
+  return profileOrder.map((profile) => ({ profile, count: counts.get(profile) || 0 })).filter((row) => row.count > 0);
+}
+
+function subsetProfileInterpretation(rows) {
+  if (!rows.length) return "Brush a larger subset to compare profile patterns.";
+  const total = d3.sum(rows, (d) => d.count);
+  const leader = rows.reduce((best, row) => (row.count > best.count ? row : best), rows[0]);
+  const share = total ? leader.count / total : 0;
+
+  if (share >= 0.5) {
+    return `${leader.profile} Pokémon make up ${formatPercent(share * 100)}% of this brushed subset. Treat this as a profile heuristic, not a ground-truth role label.`;
+  }
+
+  return "This brushed subset is mixed across profile types, so no single role-like pattern dominates.";
+}
+
+function FocusedSubsetAnalysisPanel({ brushedPokemon, datasetPokemon, onClearBrush }) {
+  const [analysisType, setAnalysisType] = useState("summary");
+  const selectedAverage = useMemo(() => subsetAverages(brushedPokemon), [brushedPokemon]);
+  const datasetAverage = useMemo(() => subsetAverages(datasetPokemon), [datasetPokemon]);
+  const profileRows = useMemo(() => subsetProfileRows(brushedPokemon, datasetAverage), [brushedPokemon, datasetAverage]);
+  const maxProfileCount = d3.max(profileRows, (d) => d.count) || 1;
+
+  return (
+    <aside className="detail-panel focused-subset-panel" aria-live="polite">
+      <div className="focused-subset-header">
+        <div>
+          <p className="section-label">Scatterplot brush</p>
+          <h3>Focused Subset Analysis</h3>
+        </div>
+        <div className="focused-subset-controls">
+          <label>
+            <span>Analysis Type</span>
+            <select value={analysisType} onChange={(event) => setAnalysisType(event.target.value)}>
+              <option value="summary">Summary</option>
+              <option value="profile">Role Distribution</option>
+            </select>
+          </label>
+          <button className="clear-brush-button" type="button" onClick={onClearBrush}>
+            Clear brush
+          </button>
+        </div>
+      </div>
+
+      <div className="subset-count">
+        <strong>{formatNumber(brushedPokemon.length)}</strong>
+        <span>selected Pokémon</span>
+      </div>
+
+      {analysisType === "summary" ? (
+        <>
+          <div className="subset-comparison-grid">
+            <SubsetMetricGroup title="Selected Group" averages={selectedAverage} />
+            <SubsetMetricGroup title="Dataset Average" averages={datasetAverage} />
+          </div>
+          <p className="subset-interpretation">{subsetSummaryInterpretation(selectedAverage, datasetAverage)}</p>
+        </>
+      ) : (
+        <section className="subset-profile-view" aria-label="Role-like profile distribution">
+          <h4>Subset profile</h4>
+          <p>Transparent heuristic based on stats, usage, and connectivity.</p>
+          <div className="subset-profile-bars">
+            {profileRows.map((row) => (
+              <div className="subset-profile-row" key={row.profile}>
+                <span>{row.profile}</span>
+                <div className="subset-profile-track">
+                  <i style={{ width: `${(row.count / maxProfileCount) * 100}%` }} />
+                </div>
+                <strong>{row.count}</strong>
+              </div>
+            ))}
+          </div>
+          <p className="subset-interpretation">{subsetProfileInterpretation(profileRows)}</p>
+        </section>
+      )}
+    </aside>
+  );
+}
+
+function SubsetMetricGroup({ title, averages }) {
+  return (
+    <section className="subset-metric-group">
+      <h4>{title}</h4>
+      <dl>
+        <div>
+          <dt>Avg Stats</dt>
+          <dd>{formatNumber(Math.round(averages.stats))}</dd>
+        </div>
+        <div>
+          <dt>Avg Usage</dt>
+          <dd>{formatPercent(averages.usage)}%</dd>
+        </div>
+        <div>
+          <dt>Avg Connectivity</dt>
+          <dd>{formatNumber(Math.round(averages.degree))}</dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
+
 function EvidenceBarChart({ rows }) {
   const [containerRef, width] = useElementWidth();
 
@@ -1879,6 +2076,7 @@ export default function App() {
   const [pickerMode, setPickerMode] = useState("usage");
   const [activeMission, setActiveMission] = useState(null);
   const brushedKeyRef = useRef("");
+  const preBrushSelectedNameRef = useRef(selectedName);
   const storyStepLockRef = useRef(null);
   const storyVisibilityRef = useRef(new Map());
 
@@ -1896,6 +2094,11 @@ export default function App() {
     () => enrichedPokemon.find((d) => d.Name === selectedName) || null,
     [enrichedPokemon, selectedName],
   );
+  const brushedPokemon = useMemo(() => {
+    if (!brushedNames.length) return [];
+    const brushedSet = new Set(brushedNames);
+    return enrichedPokemon.filter((pokemon) => brushedSet.has(pokemon.Name));
+  }, [brushedNames, enrichedPokemon]);
 
   const comparisonPokemon = useMemo(
     () => {
@@ -1941,15 +2144,29 @@ export default function App() {
     }
   }, []);
 
-  const handleBrushNames = useCallback((names) => {
-    const nextKey = names.slice().sort().join("|");
-    if (nextKey === brushedKeyRef.current) return;
-    brushedKeyRef.current = nextKey;
-    setBrushedNames(names);
-    if (names.length) {
-      setSelectedName(null);
-      setActiveStep("contradiction");
-    }
+  const handleBrushNames = useCallback(
+    (names) => {
+      const nextKey = names.slice().sort().join("|");
+      if (nextKey === brushedKeyRef.current) return;
+      const wasBrushing = brushedKeyRef.current.length > 0;
+      if (names.length && !wasBrushing) {
+        preBrushSelectedNameRef.current = selectedName;
+      }
+      brushedKeyRef.current = nextKey;
+      setBrushedNames(names);
+      if (names.length) {
+        setActiveStep("contradiction");
+      } else if (wasBrushing) {
+        setSelectedName(preBrushSelectedNameRef.current);
+      }
+    },
+    [selectedName],
+  );
+
+  const handleClearBrush = useCallback(() => {
+    brushedKeyRef.current = "";
+    setBrushedNames([]);
+    setSelectedName(preBrushSelectedNameRef.current);
   }, []);
 
   const handleStoryStep = useCallback((step) => {
@@ -2193,7 +2410,7 @@ export default function App() {
               nodes={subset.nodes}
               links={subset.links}
               imageLookup={data.imageLookup}
-              selectedName={selectedName}
+              selectedName={brushedNames.length ? null : selectedName}
               brushedNames={brushedNames}
               onSelect={handleSelectName}
             />
@@ -2206,13 +2423,21 @@ export default function App() {
             comparisonName={comparisonPokemon?.Name || comparisonName}
             onComparisonChange={setComparisonName}
           />
-          <DetailPanel
-            pokemon={selectedPokemon}
-            builds={data.builds}
-            edges={data.edges}
-            imageLookup={data.imageLookup}
-            allPokemon={enrichedPokemon}
-          />
+          {brushedNames.length ? (
+            <FocusedSubsetAnalysisPanel
+              brushedPokemon={brushedPokemon}
+              datasetPokemon={enrichedPokemon}
+              onClearBrush={handleClearBrush}
+            />
+          ) : (
+            <DetailPanel
+              pokemon={selectedPokemon}
+              builds={data.builds}
+              edges={data.edges}
+              imageLookup={data.imageLookup}
+              allPokemon={enrichedPokemon}
+            />
+          )}
         </div>
       </section>
 
