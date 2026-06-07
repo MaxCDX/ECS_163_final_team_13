@@ -3,322 +3,42 @@ import * as d3 from "d3";
 import EgoNetworkComparisonView from "./EgoNetworkComparisonView.jsx";
 import RoleCausalityCard from "./RoleCausalityCard.jsx";
 import TeamEcosystemPanel from "./TeamEcosystemPanel.jsx";
-
-const DATA_PATHS = {
-  pokemon: "/data/processed/pokemon_clean.csv",
-  edges: "/data/processed/team_edges_clean.csv",
-  builds: "/data/processed/build_usage_clean.csv",
-  images: "/data/processed/image_lookup.csv",
-};
-
-const CASE_STUDIES = [
-  "Incineroar",
-  "Zacian Crowned Sword",
-  "Kyogre",
-  "Grimmsnarl",
-  "Amoonguss",
-  "Rillaboom",
-  "Zamazenta Crowned Shield",
-  "Mewtwo",
-];
-
-const COMPARISON_NAMES = ["Zacian Crowned Sword", "Zamazenta Crowned Shield", "Incineroar"];
-
-const PICKER_MODES = [
-  { id: "usage", label: "Usage", metricLabel: "Usage" },
-  { id: "stats", label: "Stats", metricLabel: "Base stats" },
-  { id: "synergy", label: "Synergy", metricLabel: "Teammate footprint" },
-];
-const DETAIL_TABS = [
-  { id: "evidence", label: "Evidence" },
-  { id: "role", label: "Role" },
-  { id: "team", label: "Team Core" },
-];
-const LOCAL_IMAGE_PATHS = new Map([
-  ["Incineroar", "/assets/pokemon/incineroar.png"],
-  ["Zacian Crowned Sword", "/assets/pokemon/zacian-crowned-sword.png"],
-  ["Kyogre", "/assets/pokemon/kyogre.png"],
-  ["Grimmsnarl", "/assets/pokemon/grimmsnarl.png"],
-  ["Amoonguss", "/assets/pokemon/amoonguss.png"],
-  ["Rillaboom", "/assets/pokemon/rillaboom.png"],
-]);
-
-const TYPE_COLORS = new Map([
-  ["Normal", "#a9a78f"],
-  ["Fire", "#d85f3f"],
-  ["Water", "#4387c7"],
-  ["Electric", "#d1a72d"],
-  ["Grass", "#5c9f5b"],
-  ["Ice", "#6aaeb2"],
-  ["Fighting", "#b85a47"],
-  ["Poison", "#8f62a5"],
-  ["Ground", "#b99254"],
-  ["Flying", "#7696c8"],
-  ["Psychic", "#cf5e7f"],
-  ["Bug", "#8fa653"],
-  ["Rock", "#99835a"],
-  ["Ghost", "#696199"],
-  ["Dragon", "#6a73c9"],
-  ["Dark", "#61554f"],
-  ["Steel", "#7f91a0"],
-  ["Fairy", "#d282aa"],
-]);
-
-const formatPercent = d3.format(".0f");
-const formatNumber = d3.format(",");
-const formatWeighted = d3.format(",.0f");
-const formatCorrelation = d3.format(".2f");
-
-// Report/story metric calculated from data/processed/pokemon_clean.csv.
-const STORY_STATS_USAGE_CORRELATION = 0.194;
-const STORY_CONNECTIVITY_USAGE_CORRELATION = 0.903;
-const INCINEROAR_REVEAL_NAME = "Incineroar";
-const CORRELATION_SCAN_SIGNALS = [
-  {
-    id: "defensive",
-    label: "Defense",
-    accessor: (d) => d.defensiveScore,
-  },
-  {
-    id: "specialization",
-    label: "Stat focus",
-    accessor: (d) => d.statSpecialization,
-  },
-  {
-    id: "stats",
-    label: "Total stats",
-    accessor: (d) => d.Total,
-    storyValue: STORY_STATS_USAGE_CORRELATION,
-  },
-  {
-    id: "offense",
-    label: "Offense",
-    accessor: (d) => d.offensiveScore,
-  },
-  {
-    id: "topPartner",
-    label: "Strongest partner link",
-    accessor: (d) => d.maxTeammateLink,
-  },
-  {
-    id: "connectivity",
-    label: "Connectivity degree",
-    accessor: (d) => d.degree,
-    storyValue: STORY_CONNECTIVITY_USAGE_CORRELATION,
-    isWinner: true,
-  },
-];
-const STORY_STEPS = [
-  {
-    id: "assumption",
-    label: "Assumption",
-    title: "Raw power looks like the answer.",
-    targetId: "assumption-section",
-  },
-  {
-    id: "contradiction",
-    label: "Contradiction",
-    title: "High stats do not guarantee usage.",
-    targetId: "contradiction-section",
-    selectedName: "Zamazenta Crowned Shield",
-  },
-  {
-    id: "reveal",
-    label: "Network reveal",
-    title: "Team context explains the gap.",
-    targetId: "reveal-section",
-    selectedName: INCINEROAR_REVEAL_NAME,
-  },
-  {
-    id: "explore",
-    label: "Explore",
-    title: "Test the pattern yourself.",
-    targetId: "explore-section",
-  },
-];
-const EXPLORATION_MISSIONS = [
-  {
-    id: "another-incineroar",
-    title: "Find another Incineroar",
-    description: "Find a Pokemon with moderate stats but unusually strong teammate footprint.",
-  },
-  {
-    id: "failed-stat-monster",
-    title: "Find a failed stat monster",
-    description: "Find a Pokemon with elite stats that does not dominate usage.",
-  },
-  {
-    id: "support-vs-attacker",
-    title: "Compare support vs attacker",
-    description: "Does a support Pokemon rely on team fit differently from a restricted attacker?",
-  },
-  {
-    id: "test-network-claim",
-    title: "Test the network claim",
-    description: "Switch between Usage, Stats, and Synergy rankings. Do the same Pokemon stay on top?",
-  },
-];
-const EXPLORATION_MISSION_INSIGHTS = new Map([
-  [
-    "another-incineroar",
-    {
-      title: "Another Incineroar Found",
-      subjectName: "Amoonguss",
-      conclusion: "Amoonguss succeeds with moderate raw stats but strong teammate connectivity.",
-      nextStep: "Inspect the Role tab to see how support value drives usage.",
-    },
-  ],
-  [
-    "failed-stat-monster",
-    {
-      title: "Failed Stat Monster",
-      subjectName: "Zamazenta Crowned Shield",
-      conclusion: "Zamazenta has elite raw stats but very low competitive adoption.",
-      nextStep: "Compare Usage Rank and Connectivity Rank.",
-    },
-  ],
-  [
-    "support-vs-attacker",
-    {
-      title: "Different Paths to Success",
-      subjectName: "Incineroar",
-      comparisonName: "Zacian Crowned Sword",
-      conclusion: "Zacian and Incineroar reach high usage through different competitive roles.",
-      nextStep: "Inspect the Ego Comparison view above.",
-    },
-  ],
-  [
-    "test-network-claim",
-    {
-      title: "Ranking changes when team connectivity becomes the focus",
-      subjectName: "Incineroar",
-      conclusion: "The leaders shift when you rank by Synergy instead of raw Stats. That change is the thesis: network position reveals value that base stats miss.",
-      nextStep: "Switch between Usage and Synergy rankings.",
-    },
-  ],
-]);
-const ROLE_NOTES = new Map([
-  [
-    "Incineroar",
-    "Support pivot: Intimidate, Fake Out, and Parting Shot create value by buying turns and resetting board position.",
-  ],
-  [
-    "Zacian Crowned Sword",
-    "Restricted attacker: high stats and direct pressure make it one of the cases where raw power and usage align.",
-  ],
-  [
-    "Zamazenta Crowned Shield",
-    "Defensive restricted: huge stats do not automatically translate into repeated team demand in this format.",
-  ],
-  [
-    "Mewtwo",
-    "Raw attacker: strong individual stats are less convincing when the build and teammate footprint are not as central.",
-  ],
-  [
-    "Kyogre",
-    "Weather attacker: rain pressure becomes more meaningful when teammates help protect, reposition, and exploit it.",
-  ],
-  [
-    "Grimmsnarl",
-    "Disruption support: screens and status tools help teammates survive long enough to execute a plan.",
-  ],
-  [
-    "Amoonguss",
-    "Redirection support: Spore and Rage Powder-style utility can matter more than raw stat total.",
-  ],
-  [
-    "Rillaboom",
-    "Terrain support: Fake Out pressure and Grassy Terrain make it valuable as part of repeated team structures.",
-  ],
-  [
-    "Calyrex Shadow Rider",
-    "Fast spread attacker: elite speed and Astral Barrage become more reliable when partners create safe attack windows.",
-  ],
-  [
-    "Calyrex Ice Rider",
-    "Trick Room attacker: bulk and Glacial Lance reward teams that protect setup turns and reverse the speed order.",
-  ],
-  [
-    "Thundurus Incarnate Forme",
-    "Disruption support: priority utility and speed control help powerful teammates act before opposing threats.",
-  ],
-]);
-const NETWORK_ARCHETYPES = [
-  { label: "Support pivots", anchorName: "Incineroar", dx: 24, dy: -36 },
-  { label: "Restricted attackers", anchorName: "Zacian Crowned Sword", dx: 28, dy: 34 },
-  { label: "Weather pressure", anchorName: "Kyogre", dx: 26, dy: -30 },
-  { label: "Screen control", anchorName: "Grimmsnarl", dx: 24, dy: 32 },
-  { label: "Redirection support", anchorName: "Amoonguss", dx: 24, dy: -34 },
-  { label: "Terrain utility", anchorName: "Rillaboom", dx: 24, dy: 32 },
-];
-
-function typeColor(type) {
-  return TYPE_COLORS.get(type) || "#8b949e";
-}
-
-function typeLabel(d) {
-  return d?.Type2 ? `${d.Type1} / ${d.Type2}` : d?.Type1 || "Unknown";
-}
-
-function usageValue(d) {
-  return Number.isFinite(d?.usagePercent) ? d.usagePercent : 0;
-}
-
-function compactName(name) {
-  return name.replace(" Crowned Sword", "").replace(" Crowned Shield", "");
-}
-
-function imageForPokemon(name, imageLookup) {
-  return LOCAL_IMAGE_PATHS.get(name) || imageLookup.get(name) || "";
-}
-
-function parsePokemon(row) {
-  return {
-    ...row,
-    ID: +row.ID,
-    Generation: +row.Generation,
-    Total: +row.Total,
-    HP: +row.HP,
-    Attack: +row.Attack,
-    Defense: +row.Defense,
-    "Sp. Atk": +row["Sp. Atk"],
-    "Sp. Def": +row["Sp. Def"],
-    Speed: +row.Speed,
-    usagePercent: +row["Usage Percent (%)"] || 0,
-    monthlyRank: +row["Monthly Rank"],
-    offensiveScore: +row.offensive_score,
-    defensiveScore: +row.defensive_score,
-    statSpecialization: +row.stat_specialization,
-    missingBaseStats: row.missing_base_stats === "True" || row.missing_base_stats === "true",
-    hasUsageData: row.has_usage_data === "True" || row.has_usage_data === "true",
-  };
-}
-
-function parseEdge(row) {
-  return {
-    source: row.source,
-    target: row.target,
-    coUsagePercent: +row.co_usage_percent,
-    sourceUsagePercent: +row.source_usage_percent || 0,
-    targetUsagePercent: +row.target_usage_percent || 0,
-  };
-}
-
-function parseBuild(row) {
-  return {
-    pokemon: row.pokemon,
-    category: row.category,
-    name: row.name,
-    usagePercent: +row.usage_percent,
-  };
-}
-
-function parseImage(row) {
-  return {
-    pokemon: row.pokemon,
-    imagePathOrUrl: row.image_path_or_url,
-  };
-}
+import BrushedSubsetSummary from "./components/BrushedSubsetSummary.jsx";
+import HeroSection from "./components/HeroSection.jsx";
+import { ExplorationMissions, MissionInsightCard } from "./components/MissionCards.jsx";
+import PokemonPicker from "./components/PokemonPicker.jsx";
+import StoryNav from "./components/StoryNav.jsx";
+import {
+  CASE_STUDIES,
+  COMPARISON_NAMES,
+  DETAIL_TABS,
+  INCINEROAR_REVEAL_NAME,
+  LOCAL_IMAGE_PATHS,
+  NETWORK_ARCHETYPES,
+  ROLE_NOTES,
+  STORY_CONNECTIVITY_USAGE_CORRELATION,
+  STORY_STATS_USAGE_CORRELATION,
+  STORY_STEPS,
+} from "./data/storyConfig.js";
+import usePokemonData from "./data/usePokemonData.js";
+import { connectedNames, buildNetworkSubset, getBuildRows, getTopTeammates } from "./utils/networkUtils.js";
+import {
+  addNetworkMetrics,
+  buildCorrelationScanRows,
+  linearRegression,
+} from "./utils/pokemonMetrics.js";
+import {
+  compactName,
+  formatCorrelation,
+  formatNumber,
+  formatPercent,
+  formatWeighted,
+  imageForPokemon,
+  shortEvidenceLabel,
+  typeColor,
+  typeLabel,
+  usageValue,
+} from "./utils/pokemonFormatting.js";
 
 function useElementWidth() {
   const ref = useRef(null);
@@ -337,99 +57,6 @@ function useElementWidth() {
   return [ref, width];
 }
 
-function addNetworkMetrics(pokemon, edges) {
-  const metrics = new Map(pokemon.map((d) => [d.Name, { degree: 0, weightedDegree: 0, maxTeammateLink: 0 }]));
-
-  for (const edge of edges) {
-    const source = metrics.get(edge.source);
-    const target = metrics.get(edge.target);
-    if (!source || !target) continue;
-    source.degree += 1;
-    target.degree += 1;
-    source.weightedDegree += edge.coUsagePercent;
-    target.weightedDegree += edge.coUsagePercent;
-    source.maxTeammateLink = Math.max(source.maxTeammateLink, edge.coUsagePercent);
-    target.maxTeammateLink = Math.max(target.maxTeammateLink, edge.coUsagePercent);
-  }
-
-  return pokemon.map((d) => {
-    const metric = metrics.get(d.Name) || { degree: 0, weightedDegree: 0, maxTeammateLink: 0 };
-    return {
-      ...d,
-      degree: metric.degree,
-      weightedDegree: metric.weightedDegree,
-      maxTeammateLink: metric.maxTeammateLink,
-    };
-  });
-}
-
-function buildNetworkSubset(pokemon, edges) {
-  const byName = new Map(pokemon.map((d) => [d.Name, d]));
-  const selected = new Set(CASE_STUDIES.filter((name) => byName.has(name)));
-
-  const ranked = pokemon
-    .filter((d) => !d.missingBaseStats && (d.hasUsageData || d.weightedDegree > 0))
-    .sort((a, b) => d3.descending(a.weightedDegree + usageValue(a) * 65, b.weightedDegree + usageValue(b) * 65));
-
-  for (const d of ranked) {
-    if (selected.size >= 52) break;
-    selected.add(d.Name);
-  }
-
-  const nodes = [...selected].map((name) => byName.get(name)).filter(Boolean);
-  const selectedEdges = edges
-    .filter((edge) => selected.has(edge.source) && selected.has(edge.target))
-    .sort((a, b) => d3.descending(a.coUsagePercent, b.coUsagePercent));
-
-  const keep = new Map();
-  for (const edge of selectedEdges.slice(0, 115)) {
-    keep.set(`${edge.source}|${edge.target}`, edge);
-  }
-
-  for (const caseName of CASE_STUDIES) {
-    selectedEdges
-      .filter((edge) => edge.source === caseName || edge.target === caseName)
-      .slice(0, 7)
-      .forEach((edge) => keep.set(`${edge.source}|${edge.target}`, edge));
-  }
-
-  return {
-    nodes,
-    links: [...keep.values()].map((edge) => ({
-      ...edge,
-      sourceName: edge.source,
-      targetName: edge.target,
-    })),
-  };
-}
-
-function connectedNames(selectedName, links) {
-  if (!selectedName) return new Set();
-  const connected = new Set([selectedName]);
-  for (const edge of links) {
-    if (edge.sourceName === selectedName) connected.add(edge.targetName);
-    if (edge.targetName === selectedName) connected.add(edge.sourceName);
-  }
-  return connected;
-}
-
-function getBuildRows(builds, name, category) {
-  return builds
-    .filter((row) => row.pokemon === name && row.category === category)
-    .sort((a, b) => d3.descending(a.usagePercent, b.usagePercent));
-}
-
-function getTopTeammates(edges, name) {
-  return edges
-    .filter((edge) => edge.source === name || edge.target === name)
-    .map((edge) => ({
-      name: edge.source === name ? edge.target : edge.source,
-      percent: edge.coUsagePercent,
-    }))
-    .sort((a, b) => d3.descending(a.percent, b.percent))
-    .slice(0, 5);
-}
-
 function roleSummary(pokemon) {
   return (
     ROLE_NOTES.get(pokemon.Name) ||
@@ -446,17 +73,8 @@ function buildEvidenceRows({ moves, items, abilities, teammates }) {
   ];
 }
 
-function shortEvidenceLabel(label) {
-  return compactName(label)
-    .replace(" Solo Form", " Solo")
-    .replace(" Complete Forme", " Complete")
-    .replace(" Shadow Rider", " Shadow")
-    .replace(" Ice Rider", " Ice")
-    .replace(" Incarnate Forme", " Incarnate")
-    .replace(" Therian Forme", " Therian");
-}
-
 function comparisonLabelPlacement(pointX, label, chartLeft, chartRight) {
+  // Highlight labels flip sides near chart edges so important names are not clipped.
   const estimatedWidth = label.length * 6.8;
   const rightX = pointX + 12;
   const leftX = pointX - 12;
@@ -470,134 +88,6 @@ function comparisonLabelPlacement(pointX, label, chartLeft, chartRight) {
   }
 
   return { x: rightX, anchor: "start" };
-}
-
-function pearsonCorrelation(data, getX, getY) {
-  const cleanData = data.filter((d) => Number.isFinite(getX(d)) && Number.isFinite(getY(d)));
-  if (cleanData.length < 2) return 0;
-
-  const xMean = d3.mean(cleanData, getX);
-  const yMean = d3.mean(cleanData, getY);
-  let numerator = 0;
-  let xTotal = 0;
-  let yTotal = 0;
-
-  for (const d of cleanData) {
-    const xDelta = getX(d) - xMean;
-    const yDelta = getY(d) - yMean;
-    numerator += xDelta * yDelta;
-    xTotal += xDelta * xDelta;
-    yTotal += yDelta * yDelta;
-  }
-
-  const denominator = Math.sqrt(xTotal * yTotal);
-  return denominator ? numerator / denominator : 0;
-}
-
-function buildCorrelationScanRows(pokemon) {
-  const data = pokemon.filter((d) => d.hasUsageData && usageValue(d) > 0);
-  return CORRELATION_SCAN_SIGNALS.map((signal) => {
-    const computedValue = pearsonCorrelation(data, signal.accessor, usageValue);
-    const value = signal.storyValue ?? computedValue;
-    return {
-      ...signal,
-      computedValue,
-      value,
-      strength: Math.abs(value),
-    };
-  }).sort((a, b) => d3.ascending(a.strength, b.strength));
-}
-
-function rankedPickerOptions(pokemon, query, mode) {
-  const searchText = query.trim().toLowerCase();
-  const hasSearch = searchText.length > 0;
-  const eligiblePokemon = pokemon.filter((d) => usageValue(d) > 0 || d.degree > 0 || d.weightedDegree > 0);
-  const matchingPokemon = hasSearch ? eligiblePokemon.filter((d) => d.Name.toLowerCase().includes(searchText)) : eligiblePokemon;
-
-  const searchTieBreak = (a, b) => {
-    if (!hasSearch) return d3.ascending(a.Name, b.Name);
-    const aStarts = a.Name.toLowerCase().startsWith(searchText);
-    const bStarts = b.Name.toLowerCase().startsWith(searchText);
-    return d3.descending(aStarts, bStarts) || d3.ascending(a.Name, b.Name);
-  };
-
-  if (mode === "stats") {
-    return (hasSearch ? matchingPokemon : matchingPokemon.filter((d) => Number.isFinite(d.Total)))
-      .sort((a, b) => d3.descending(a.Total, b.Total) || searchTieBreak(a, b))
-      .slice(0, 8);
-  }
-
-  if (mode === "synergy") {
-    return (hasSearch ? matchingPokemon : matchingPokemon.filter((d) => d.weightedDegree > 0))
-      .sort((a, b) => d3.descending(a.weightedDegree, b.weightedDegree) || searchTieBreak(a, b))
-      .slice(0, 8);
-  }
-
-  return (hasSearch ? matchingPokemon : matchingPokemon.filter((d) => d.hasUsageData && usageValue(d) > 0))
-    .sort((a, b) => d3.descending(usageValue(a), usageValue(b)) || searchTieBreak(a, b))
-    .slice(0, 8);
-}
-
-function pickerMetric(pokemon, mode) {
-  if (mode === "stats") return formatNumber(pokemon.Total);
-  if (mode === "synergy") return formatWeighted(pokemon.weightedDegree);
-  return `${formatPercent(usageValue(pokemon))}%`;
-}
-
-function linearRegression(data, getX, getY) {
-  if (data.length < 2) return null;
-
-  const xMean = d3.mean(data, getX);
-  const yMean = d3.mean(data, getY);
-  let numerator = 0;
-  let denominator = 0;
-
-  for (const d of data) {
-    const xDelta = getX(d) - xMean;
-    numerator += xDelta * (getY(d) - yMean);
-    denominator += xDelta * xDelta;
-  }
-
-  if (!denominator) return null;
-  const slope = numerator / denominator;
-  return {
-    slope,
-    intercept: yMean - slope * xMean,
-  };
-}
-
-function usePokemonData() {
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    Promise.all([
-      d3.csv(DATA_PATHS.pokemon, parsePokemon),
-      d3.csv(DATA_PATHS.edges, parseEdge),
-      d3.csv(DATA_PATHS.builds, parseBuild),
-      d3.csv(DATA_PATHS.images, parseImage),
-    ])
-      .then(([pokemon, edges, builds, images]) => {
-        if (isCancelled) return;
-        setData({
-          pokemon: pokemon.filter((d) => !d.missingBaseStats),
-          edges,
-          builds,
-          imageLookup: new Map(images.map((d) => [d.pokemon, d.imagePathOrUrl])),
-        });
-      })
-      .catch((loadError) => {
-        if (!isCancelled) setError(loadError);
-      });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, []);
-
-  return { data, error };
 }
 
 function ComparisonChart({ pokemon, selectedName, comparisonName, activeSlot, brushedNames, onSelect, onBrush }) {
@@ -631,6 +121,7 @@ function ComparisonChart({ pokemon, selectedName, comparisonName, activeSlot, br
     const margin = { top: 42, right: 28, bottom: 58, left: 64 };
     const root = d3.select(containerRef.current);
 
+    // D3 owns SVG drawing here: axes, annotations, brushing, and point interactions.
     root.selectAll("*").remove();
 
     const svg = root
@@ -650,6 +141,7 @@ function ComparisonChart({ pokemon, selectedName, comparisonName, activeSlot, br
       .nice()
       .range([height - margin.bottom, margin.top]);
 
+    // D3 owns the SVG contents for this chart; React only owns the container.
     svg
       .append("g")
       .attr("class", "axis")
@@ -715,6 +207,7 @@ function ComparisonChart({ pokemon, selectedName, comparisonName, activeSlot, br
         .attr("y2", y(usageValue(selected)));
     }
 
+    // Brush provides focus/context by selecting a subset for linked network highlighting.
     const brush = d3
       .brush()
       .extent([
@@ -985,25 +478,6 @@ function StoryCallouts({ items }) {
   );
 }
 
-function StoryStepper({ activeStep, onStep }) {
-  return (
-    <nav className="story-stepper" aria-label="Guided story stages">
-      {STORY_STEPS.map((step, index) => (
-        <button
-          className={step.id === activeStep ? "is-active" : ""}
-          key={step.id}
-          type="button"
-          onClick={() => onStep(step)}
-        >
-          <span>{String(index + 1).padStart(2, "0")}</span>
-          <strong>{step.label}</strong>
-          <small>{step.title}</small>
-        </button>
-      ))}
-    </nav>
-  );
-}
-
 function CorrelationScanChart({ rows }) {
   const [containerRef, width] = useElementWidth();
 
@@ -1014,6 +488,7 @@ function CorrelationScanChart({ rows }) {
     const height = 74 + rows.length * rowHeight;
     const margin = { top: 40, right: width < 560 ? 48 : 90, bottom: 38, left: width < 560 ? 124 : 228 };
     const root = d3.select(containerRef.current);
+    // D3 draws the signal scan so bar length, axis scale, and labels stay tightly coordinated.
     root.selectAll("*").remove();
 
     const svg = root
@@ -1192,273 +667,6 @@ function ConnectivityBridge({ pokemon }) {
   );
 }
 
-function ExplorationMissions({ activeMission, onMissionSelect }) {
-  return (
-    <div className="exploration-missions" aria-label="Guided exploration missions">
-      {EXPLORATION_MISSIONS.map((mission) => (
-        <button
-          key={mission.id}
-          type="button"
-          className={activeMission === mission.id ? "is-active" : ""}
-          onClick={() => onMissionSelect(mission.id)}
-        >
-          <strong>{mission.title}</strong>
-          <span>{mission.description}</span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function missionRank(pokemon, name, mode) {
-  const ranked = rankedPickerOptions(pokemon, "", mode);
-  const index = ranked.findIndex((item) => item.Name === name);
-  if (index >= 0) return index + 1;
-
-  const allRanked = pokemon
-    .filter((item) => {
-      if (mode === "stats") return Number.isFinite(item.Total);
-      if (mode === "synergy") return item.weightedDegree > 0;
-      return item.hasUsageData;
-    })
-    .sort((a, b) => {
-      if (mode === "stats") return d3.descending(a.Total, b.Total);
-      if (mode === "synergy") return d3.descending(a.weightedDegree, b.weightedDegree);
-      return d3.descending(usageValue(a), usageValue(b));
-    });
-
-  const allIndex = allRanked.findIndex((item) => item.Name === name);
-  return allIndex >= 0 ? allIndex + 1 : null;
-}
-
-function missionEvidence(insight, pokemon) {
-  const subject = pokemon.find((item) => item.Name === insight.subjectName);
-  const comparison = pokemon.find((item) => item.Name === insight.comparisonName);
-  if (!subject) return [];
-
-  if (insight.subjectName === "Amoonguss") {
-    return [
-      `Base stats: ${formatNumber(subject.Total)}`,
-      `Stats rank: #${missionRank(pokemon, subject.Name, "stats")}`,
-      `Synergy rank: #${missionRank(pokemon, subject.Name, "synergy")}`,
-      `Team partners: ${formatNumber(subject.degree)}`,
-    ];
-  }
-
-  if (insight.subjectName === "Zamazenta Crowned Shield") {
-    return [
-      `Base stats: ${formatNumber(subject.Total)}`,
-      `Stats rank: #${missionRank(pokemon, subject.Name, "stats")}`,
-      `Usage: ${formatPercent(usageValue(subject))}%`,
-      `Usage rank: #${missionRank(pokemon, subject.Name, "usage")}`,
-    ];
-  }
-
-  if (comparison) {
-    return [
-      `${subject.Name}: #${missionRank(pokemon, subject.Name, "synergy")} Synergy`,
-      `${comparison.Name}: #${missionRank(pokemon, comparison.Name, "stats")} Stats`,
-      `${subject.Name}: ${formatNumber(subject.degree)} partners`,
-      `${comparison.Name}: ${formatNumber(comparison.degree)} partners`,
-    ];
-  }
-
-  if (insight.subjectName === "Incineroar" && insight.title === "Ranking changes when team connectivity becomes the focus") {
-    return [
-      "Usage leader: Zacian Crowned Sword",
-      "Stats leader: Zacian Crowned Sword",
-      "Synergy outlier: Incineroar",
-    ];
-  }
-
-  return [
-    `Stats rank: #${missionRank(pokemon, subject.Name, "stats")}`,
-    `Usage rank: #${missionRank(pokemon, subject.Name, "usage")}`,
-    `Synergy rank: #${missionRank(pokemon, subject.Name, "synergy")}`,
-    `Team partners: ${formatNumber(subject.degree)}`,
-  ];
-}
-
-function currentFocusTakeaway({ statsRank, synergyRank, usageRank }) {
-  if (!statsRank || !synergyRank || !usageRank) return "Compare its raw power, adoption, and team position.";
-  if (synergyRank <= 10 && statsRank > 20) return "Moderate stats, elite team connectivity.";
-  if (statsRank <= 10 && usageRank > 30) return "Elite stats, limited competitive adoption.";
-  if (usageRank <= 10 && synergyRank <= 10) return "High usage backed by strong team connectivity.";
-  if (synergyRank < statsRank) return "Team connectivity adds value beyond raw stats.";
-  return "Raw power and team position tell different parts of the story.";
-}
-
-function formatRank(rank) {
-  return rank ? `#${rank}` : "N/A";
-}
-
-function MissionInsightCard({ activeMission, pokemon }) {
-  const insight = activeMission ? EXPLORATION_MISSION_INSIGHTS.get(activeMission) : null;
-  if (!insight) return null;
-  const evidence = missionEvidence(insight, pokemon);
-
-  return (
-    <section className="mission-insight-card" aria-live="polite" aria-label="Mission takeaway">
-      <div className="mission-insight-heading">
-        <span aria-hidden="true">✓</span>
-        <div>
-          <strong>{insight.title}</strong>
-          <p>{insight.conclusion}</p>
-        </div>
-      </div>
-      {evidence.length ? (
-        <dl className="mission-evidence" aria-label="Mission evidence">
-          {evidence.map((item) => {
-            const [label, ...valueParts] = item.split(": ");
-            return (
-              <div key={item}>
-                <dt>{label}</dt>
-                <dd>{valueParts.join(": ")}</dd>
-              </div>
-            );
-          })}
-        </dl>
-      ) : null}
-      <p className="mission-next-step">
-        <strong>Next step:</strong> {insight.nextStep}
-      </p>
-    </section>
-  );
-}
-
-function PokemonPicker({
-  pokemon,
-  imageLookup,
-  selectedPokemon,
-  selectedName,
-  comparisonName,
-  activeSlot,
-  query,
-  mode,
-  onQueryChange,
-  onModeChange,
-  onSelect,
-}) {
-  const modeInfo = PICKER_MODES.find((item) => item.id === mode) || PICKER_MODES[0];
-  const options = useMemo(() => rankedPickerOptions(pokemon, query, mode), [mode, pokemon, query]);
-  const currentFocus = useMemo(() => {
-    if (!selectedPokemon) return null;
-    const ranks = {
-      usageRank: missionRank(pokemon, selectedPokemon.Name, "usage"),
-      statsRank: missionRank(pokemon, selectedPokemon.Name, "stats"),
-      synergyRank: missionRank(pokemon, selectedPokemon.Name, "synergy"),
-    };
-    return {
-      ...ranks,
-      takeaway: currentFocusTakeaway(ranks),
-    };
-  }, [pokemon, selectedPokemon]);
-
-  return (
-    <section className="pokemon-picker-section" aria-labelledby="pokemon-picker-title">
-      <div className="picker-copy">
-        <p className="section-label">Pick a focus</p>
-        <h2 id="pokemon-picker-title">Choose a Pokémon to examine.</h2>
-        <p>
-          Search directly, or use the ranked shortcuts to test whether usage, raw stats, and team synergy point to the
-          same names.
-        </p>
-      </div>
-
-      <div className="pokemon-picker">
-        <div className={`picker-current is-${activeSlot}`}>
-          <div className="picker-current-identity">
-            {selectedPokemon ? (
-              <img src={imageLookup.get(selectedPokemon.Name) || ""} alt="" />
-            ) : (
-              <div className="picker-image-placeholder" />
-            )}
-            <div className="picker-current-name">
-              <span>{activeSlot === "second" ? "Second selection" : "First selection"}</span>
-              <strong>{selectedPokemon?.Name || "None selected"}</strong>
-              <small>{selectedPokemon ? typeLabel(selectedPokemon) : "Choose a search result or ranked option"}</small>
-            </div>
-          </div>
-          {currentFocus ? (
-            <>
-              <dl className="picker-current-ranks" aria-label={`${selectedPokemon.Name} ranking summary`}>
-                <div>
-                  <dt>Usage rank</dt>
-                  <dd>{formatRank(currentFocus.usageRank)}</dd>
-                </div>
-                <div>
-                  <dt>Stats rank</dt>
-                  <dd>{formatRank(currentFocus.statsRank)}</dd>
-                </div>
-                <div>
-                  <dt>Synergy rank</dt>
-                  <dd>{formatRank(currentFocus.synergyRank)}</dd>
-                </div>
-              </dl>
-              <p className="picker-current-takeaway">{currentFocus.takeaway}</p>
-            </>
-          ) : null}
-        </div>
-
-        <label className="picker-search">
-          <span>Search by name</span>
-          <input
-            type="search"
-            value={query}
-            placeholder="Try Incineroar, Kyogre, Mewtwo..."
-            onChange={(event) => onQueryChange(event.target.value)}
-          />
-        </label>
-
-        <div className="picker-mode-row" aria-label="Rank suggestions by">
-          {PICKER_MODES.map((item) => (
-            <button
-              className={item.id === mode ? "is-active" : ""}
-              key={item.id}
-              type="button"
-              onClick={() => onModeChange(item.id)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="picker-results" aria-label={query ? "Search results" : `${modeInfo.label} ranked suggestions`}>
-          {options.length ? (
-            options.map((item, index) => (
-              <button
-                className={[
-                  item.Name === selectedName ? "is-first-selection" : "",
-                  item.Name === comparisonName ? "is-second-selection" : "",
-                  item.Name === (activeSlot === "second" ? comparisonName : selectedName) ? "is-active-selection" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                key={item.Name}
-                type="button"
-                onClick={() => onSelect(item.Name)}
-              >
-                <span className="picker-rank">{query ? "Result" : `#${index + 1}`}</span>
-                <img src={imageLookup.get(item.Name) || ""} alt="" />
-                <span className="picker-name">
-                  <strong>{item.Name}</strong>
-                  <small>{typeLabel(item)}</small>
-                </span>
-                <span className="picker-metric">
-                  <strong>{pickerMetric(item, mode)}</strong>
-                  <small>{modeInfo.metricLabel}</small>
-                </span>
-              </button>
-            ))
-          ) : (
-            <p className="picker-empty">No Pokémon match that search.</p>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function SelectionSlotButton({ slot, pokemon, isActive, onSelect }) {
   const slotClass = slot.toLowerCase();
   return (
@@ -1485,41 +693,6 @@ function ComparisonSlotSelector({ selectedPokemon, comparisonPokemon, activeSlot
         onSelect={() => onActiveSlotChange("second")}
       />
     </div>
-  );
-}
-
-function HeroRoster({ pokemon, imageLookup, onSelect }) {
-  const featured = CASE_STUDIES.map((name) => pokemon.find((d) => d.Name === name)).filter(Boolean).slice(0, 6);
-
-  return (
-    <aside className="hero-roster" aria-label="Featured Pokémon in the network">
-      <div className="hero-roster-header">
-        <span>{featured.length}</span>
-        <p>case-study Pokémon</p>
-      </div>
-      <div className="hero-sprite-grid">
-        {featured.map((d) => (
-          <button
-            key={d.Name}
-            style={{ "--type-color": typeColor(d.Type1) }}
-            type="button"
-            onClick={() => onSelect(d.Name, { scrollToNetwork: true })}
-          >
-            <span className="hero-sprite-frame">
-              <img
-                src={imageForPokemon(d.Name, imageLookup)}
-                alt=""
-                className={LOCAL_IMAGE_PATHS.has(d.Name) ? "is-loaded" : ""}
-                onLoad={(event) => event.currentTarget.classList.add("is-loaded")}
-                onError={(event) => event.currentTarget.remove()}
-              />
-            </span>
-            <span className="hero-card-name">{compactName(d.Name)}</span>
-            <small>{typeLabel(d)}</small>
-          </button>
-        ))}
-      </div>
-    </aside>
   );
 }
 
@@ -1562,6 +735,7 @@ function NetworkGraph({ nodes, links, imageLookup, focusedName, selectedNames = 
     const radius = d3.scaleSqrt().domain([0, d3.max(graphNodes, usageValue) || 1]).range([6, 24]);
     const edgeWidth = d3.scaleLinear().domain(d3.extent(graphLinks, (d) => d.coUsagePercent)).range([0.8, 4.5]);
 
+    // D3 force layout encodes repeated teammate structure as spatial proximity.
     const link = svg
       .append("g")
       .attr("class", "links")
@@ -1699,6 +873,7 @@ function NetworkGraph({ nodes, links, imageLookup, focusedName, selectedNames = 
     }
 
     return () => {
+      // Stop the D3 simulation to avoid background timers after unmount.
       simulation.stop();
       root.selectAll("*").remove();
     };
@@ -1728,6 +903,7 @@ function NetworkGraph({ nodes, links, imageLookup, focusedName, selectedNames = 
     const root = d3.select(graphLayerRef.current);
     const edgeWidth = d3.scaleLinear().domain(d3.extent(links, (d) => d.coUsagePercent)).range([0.8, 4.5]);
 
+    // Linked state is applied as classes so D3 rendering and React state stay separate.
     root
       .selectAll(".link")
       .classed(
@@ -1942,122 +1118,6 @@ function DetailPanel({ pokemon, builds, edges, imageLookup, allPokemon, selectio
   );
 }
 
-function averageValue(rows, accessor) {
-  const values = rows.map(accessor).filter((value) => Number.isFinite(value));
-  if (!values.length) return 0;
-  return d3.mean(values) || 0;
-}
-
-function subsetAverages(rows) {
-  return {
-    stats: averageValue(rows, (d) => d.Total),
-    usage: averageValue(rows, usageValue),
-    degree: averageValue(rows, (d) => d.degree),
-  };
-}
-
-function compareAverage(value, baseline, label, formatter, threshold = 0.08) {
-  const delta = value - baseline;
-  const scale = Math.max(Math.abs(baseline), 1);
-  if (Math.abs(delta) / scale < threshold) return `near-average ${label}`;
-  return `${delta > 0 ? "higher-than-average" : "lower-than-average"} ${label}`;
-}
-
-function subsetSummaryInterpretation(selectedAverage, datasetAverage) {
-  const statsComparison = compareAverage(selectedAverage.stats, datasetAverage.stats, "stats", formatNumber, 0.04);
-  const usageComparison = compareAverage(selectedAverage.usage, datasetAverage.usage, "usage", formatPercent, 0.12);
-  const connectivityComparison = compareAverage(selectedAverage.degree, datasetAverage.degree, "connectivity", formatNumber, 0.12);
-
-  const thesisSignal =
-    selectedAverage.stats < datasetAverage.stats * 0.96 &&
-    selectedAverage.usage > datasetAverage.usage * 1.12 &&
-    selectedAverage.degree > datasetAverage.degree * 1.12;
-
-  return thesisSignal
-    ? `This subset has ${statsComparison}, but ${usageComparison} and ${connectivityComparison}. That pattern is consistent with team fit adding value beyond raw power.`
-    : `This subset has ${statsComparison}, ${usageComparison}, and ${connectivityComparison}. Use the network view to check whether the brushed Pokémon share repeated teammate structure.`;
-}
-
-function formatSignedDelta(value, formatter) {
-  if (!Number.isFinite(value)) return "0";
-  const roundedValue = Math.round(value);
-  if (roundedValue === 0) return "0";
-  return `${roundedValue > 0 ? "+" : ""}${formatter(Math.abs(value) < 1 ? value : roundedValue)}`;
-}
-
-function SelectionStatsPanel({ brushedPokemon, datasetPokemon, onClearBrush }) {
-  const hasSelection = brushedPokemon.length > 0;
-  const selectedAverage = useMemo(
-    () => subsetAverages(hasSelection ? brushedPokemon : datasetPokemon),
-    [brushedPokemon, datasetPokemon, hasSelection],
-  );
-  const datasetAverage = useMemo(() => subsetAverages(datasetPokemon), [datasetPokemon]);
-  const description = hasSelection
-    ? subsetSummaryInterpretation(selectedAverage, datasetAverage)
-    : "No subset selected. Brush the scatterplot to compare a selected group against the full plotted dataset.";
-  const metricRows = [
-    {
-      label: "Avg stats",
-      selected: Math.round(selectedAverage.stats),
-      dataset: Math.round(datasetAverage.stats),
-      delta: selectedAverage.stats - datasetAverage.stats,
-      formatter: formatNumber,
-    },
-    {
-      label: "Avg usage",
-      selected: `${formatPercent(selectedAverage.usage)}%`,
-      dataset: `${formatPercent(datasetAverage.usage)}%`,
-      delta: selectedAverage.usage - datasetAverage.usage,
-      formatter: (value) => `${formatPercent(value)}%`,
-    },
-    {
-      label: "Avg partners",
-      selected: Math.round(selectedAverage.degree),
-      dataset: Math.round(datasetAverage.degree),
-      delta: selectedAverage.degree - datasetAverage.degree,
-      formatter: formatNumber,
-    },
-  ];
-
-  return (
-    <aside className="selection-stats-panel" aria-live="polite">
-      <div className="selection-stats-header">
-        <div>
-          <p className="section-label">Selection stats</p>
-          <h3>Selected group vs. full dataset</h3>
-        </div>
-        <button className="clear-brush-button" type="button" onClick={onClearBrush} disabled={!hasSelection}>
-          Clear brush
-        </button>
-      </div>
-
-      <div className="selection-stats-summary">
-        <div className="subset-count">
-          <strong>{formatNumber(brushedPokemon.length)}</strong>
-          <span>selected</span>
-        </div>
-        <p>{description}</p>
-      </div>
-
-      <dl className="selection-stat-grid" aria-label="Selected group compared with the full dataset">
-        {metricRows.map((metric) => {
-          const deltaClass = metric.delta > 0 ? "is-positive" : metric.delta < 0 ? "is-negative" : "";
-          return (
-            <div key={metric.label}>
-              <dt>{metric.label}</dt>
-              <dd>
-                <strong>{metric.selected}</strong>
-                <span>Full: {metric.dataset}</span>
-                <em className={deltaClass}>{formatSignedDelta(metric.delta, metric.formatter)}</em>
-              </dd>
-            </div>
-          );
-        })}
-      </dl>
-    </aside>
-  );
-}
-
 function EvidenceBarChart({ rows }) {
   const [containerRef, width] = useElementWidth();
 
@@ -2151,6 +1211,7 @@ function EvidenceBarChart({ rows }) {
 
 export default function App() {
   const { data, error } = usePokemonData();
+  // App owns shared story and selection state so scatterplot, network, comparison, picker, and detail stay synchronized.
   const [selectedName, setSelectedName] = useState("Incineroar");
   const [comparisonName, setComparisonName] = useState("Zacian Crowned Sword");
   const [activeComparisonSlot, setActiveComparisonSlot] = useState("second");
@@ -2222,6 +1283,7 @@ export default function App() {
 
   const handleSelectName = useCallback(
     (name, options = {}) => {
+      // Updates the selected Pokémon and keeps linked views aligned through the active comparison slot.
       const targetSlot = options.slot || activeComparisonSlot;
       const isInsideBrush = name && brushedNames.includes(name);
 
@@ -2256,6 +1318,7 @@ export default function App() {
       brushedKeyRef.current = nextKey;
       setBrushedNames(names);
       if (names.length) {
+        // Brush is subset focus; click remains single-Pokémon detail selection.
         setActiveStep("contradiction");
         if (!wasBrushing) {
           setNetworkFocusName(null);
@@ -2266,6 +1329,7 @@ export default function App() {
   );
 
   const handleClearBrush = useCallback(() => {
+    // Clearing the brush restores the full network context.
     brushedKeyRef.current = "";
     setBrushedNames([]);
     setNetworkFocusName(null);
@@ -2274,6 +1338,7 @@ export default function App() {
   const handleNetworkNodeSelect = useCallback(
     (name) => {
       if (!name) return;
+      // Network clicks update detail evidence and make the network the active story focus.
       setActiveStep("reveal");
       setActiveMission(null);
       setNetworkFocusName(name);
@@ -2300,6 +1365,7 @@ export default function App() {
 
   const handleComparisonSlotChange = useCallback(
     (slot) => {
+      // The active slot controls whether future clicks edit the first or second Pokémon.
       setActiveComparisonSlot(slot);
       if (brushedNames.length) {
         setNetworkFocusName(null);
@@ -2311,6 +1377,7 @@ export default function App() {
   );
 
   const handleStoryStep = useCallback((step) => {
+    // Story step clicks reset exploratory state before scrolling to the guided section.
     setActiveStep(step.id);
     setSelectedName(step.selectedName || null);
     setBrushedNames([]);
@@ -2325,6 +1392,7 @@ export default function App() {
   }, []);
 
   const handleMissionSelect = useCallback((missionId) => {
+    // Missions drive guided exploration examples without changing the underlying calculations.
     setActiveMission(missionId);
     setActiveStep("explore");
     setBrushedNames([]);
@@ -2370,6 +1438,7 @@ export default function App() {
     if (!data) return undefined;
     let frameId = 0;
 
+    // Scroll position maps the page to Martini Glass stages for the sticky story navigation.
     const resolveActiveStep = () => {
       const lockedStep = storyStepLockRef.current;
       if (lockedStep) {
@@ -2441,29 +1510,15 @@ export default function App() {
 
   return (
     <main className="story-shell">
-      <section id="assumption-section" className="hero" aria-labelledby="hero-title">
-        <div>
-          <p className="section-label">Team 13 · competitive Pokémon data story</p>
-          <h1 id="hero-title">Raw power matters. Team fit matters too.</h1>
-          <p className="data-kicker">VGC stats, usage, teammate networks, roles, moves, items, and abilities</p>
-          <p>
-            If raw stats alone explained competitive success, the strongest Pokémon should also be the most used. This
-            story tests that assumption.
-          </p>
-          <div className="hero-facts" aria-label="Dataset summary">
-            <span>{formatNumber(enrichedPokemon.length)} Pokémon</span>
-            <span>{formatNumber(data.edges.length)} teammate links</span>
-            <span>{formatNumber(data.builds.length)} build records</span>
-          </div>
-        </div>
-        <HeroRoster
-          pokemon={enrichedPokemon}
-          imageLookup={data.imageLookup}
-          onSelect={handleSelectName}
-        />
-      </section>
+      <HeroSection
+        pokemon={enrichedPokemon}
+        edges={data.edges}
+        builds={data.builds}
+        imageLookup={data.imageLookup}
+        onSelect={handleSelectName}
+      />
 
-      <StoryStepper activeStep={activeStep} onStep={handleStoryStep} />
+      <StoryNav activeStep={activeStep} onStep={handleStoryStep} />
 
       <section id="contradiction-section" className="guided-section" aria-labelledby="guided-title">
         <div className="section-copy">
@@ -2498,7 +1553,7 @@ export default function App() {
             onSelect={handleSelectName}
             onBrush={handleBrushNames}
           />
-          <SelectionStatsPanel
+          <BrushedSubsetSummary
             brushedPokemon={brushedPokemon}
             datasetPokemon={scatterDatasetPokemon}
             onClearBrush={handleClearBrush}
