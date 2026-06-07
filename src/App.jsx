@@ -14,7 +14,6 @@ import {
   DETAIL_TABS,
   INCINEROAR_REVEAL_NAME,
   LOCAL_IMAGE_PATHS,
-  NETWORK_ARCHETYPES,
   ROLE_NOTES,
   STORY_CONNECTIVITY_USAGE_CORRELATION,
   STORY_STATS_USAGE_CORRELATION,
@@ -717,7 +716,7 @@ function NetworkGraph({ nodes, links, imageLookup, focusedName, selectedNames = 
 
     if (simulationRef.current) simulationRef.current.stop();
 
-    const height = Math.max(380, Math.min(440, width * 0.38));
+    const height = Math.max(520, Math.min(640, width * 0.48));
     const root = d3.select(graphLayerRef.current);
     root.selectAll("*").remove();
     setTooltip(null);
@@ -730,8 +729,6 @@ function NetworkGraph({ nodes, links, imageLookup, focusedName, selectedNames = 
 
     const graphLinks = links.map((d) => ({ ...d, source: d.sourceName, target: d.targetName }));
     const graphNodes = nodes.map((d) => ({ ...d }));
-    const nodeByName = new Map(graphNodes.map((d) => [d.Name, d]));
-    const archetypes = NETWORK_ARCHETYPES.filter((d) => nodeByName.has(d.anchorName));
     const radius = d3.scaleSqrt().domain([0, d3.max(graphNodes, usageValue) || 1]).range([6, 24]);
     const edgeWidth = d3.scaleLinear().domain(d3.extent(graphLinks, (d) => d.coUsagePercent)).range([0.8, 4.5]);
 
@@ -745,15 +742,6 @@ function NetworkGraph({ nodes, links, imageLookup, focusedName, selectedNames = 
       .attr("class", "link")
       .attr("stroke-width", (d) => edgeWidth(d.coUsagePercent))
       .attr("stroke-opacity", (d) => Math.min(0.55, 0.14 + d.coUsagePercent / 180));
-
-    const archetypeLabel = svg
-      .append("g")
-      .attr("class", "archetype-labels")
-      .selectAll("text")
-      .data(archetypes)
-      .join("text")
-      .attr("class", "archetype-label")
-      .text((d) => d.label);
 
     const nodeLayer = svg
       .append("g")
@@ -808,14 +796,14 @@ function NetworkGraph({ nodes, links, imageLookup, focusedName, selectedNames = 
         d3
           .forceLink(graphLinks)
           .id((d) => d.Name)
-          .distance((d) => 112 - Math.min(52, d.coUsagePercent))
-          .strength(0.42),
+          .distance((d) => 136 - Math.min(54, d.coUsagePercent))
+          .strength(0.36),
       )
-      .force("charge", d3.forceManyBody().strength(-205))
+      .force("charge", d3.forceManyBody().strength(-260))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide((d) => radius(usageValue(d)) + 6))
-      .force("x", d3.forceX(width / 2).strength(0.085))
-      .force("y", d3.forceY(height / 2).strength(0.1))
+      .force("collision", d3.forceCollide((d) => radius(usageValue(d)) + 10))
+      .force("x", d3.forceX(width / 2).strength(0.07))
+      .force("y", d3.forceY(height / 2).strength(0.08))
       .on("tick", () => {
         graphNodes.forEach((d) => {
           d.x = Math.max(24, Math.min(width - 24, d.x));
@@ -834,9 +822,6 @@ function NetworkGraph({ nodes, links, imageLookup, focusedName, selectedNames = 
           .attr("x", (d) => d.x - Math.max(20, radius(usageValue(d)) * 1.7) / 2)
           .attr("y", (d) => d.y - Math.max(20, radius(usageValue(d)) * 1.7) / 2);
         label.attr("x", (d) => d.x + radius(usageValue(d)) + 5).attr("y", (d) => d.y + 4);
-        archetypeLabel
-          .attr("x", (d) => Math.max(18, Math.min(width - 160, nodeByName.get(d.anchorName).x + d.dx)))
-          .attr("y", (d) => Math.max(18, Math.min(height - 18, nodeByName.get(d.anchorName).y + d.dy)));
       });
 
     nodeLayer.call(
@@ -955,10 +940,6 @@ function NetworkGraph({ nodes, links, imageLookup, focusedName, selectedNames = 
       )
       .classed("is-reveal-label", (d) => focusedInGraph && (d.Name === focusedName || strongestNeighborLabels.has(d.Name)));
 
-    root
-      .selectAll(".archetype-label")
-      .classed("is-muted", (d) => focusedInGraph && d.anchorName !== focusedName && !connected.has(d.anchorName))
-      .classed("is-active", (d) => focusedInGraph && (d.anchorName === focusedName || connected.has(d.anchorName)));
   }, [brushedNames, containerRef, focusedName, links, nodes, selectedNames]);
 
   return (

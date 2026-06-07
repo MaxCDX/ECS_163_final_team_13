@@ -219,12 +219,3 @@ export const ROLE_NOTES = new Map([
     "Disruption support: priority utility and speed control help powerful teammates act before opposing threats.",
   ],
 ]);
-
-export const NETWORK_ARCHETYPES = [
-  { label: "Support pivots", anchorName: "Incineroar", dx: 24, dy: -36 },
-  { label: "Restricted attackers", anchorName: "Zacian Crowned Sword", dx: 28, dy: 34 },
-  { label: "Weather pressure", anchorName: "Kyogre", dx: 26, dy: -30 },
-  { label: "Screen control", anchorName: "Grimmsnarl", dx: 24, dy: 32 },
-  { label: "Redirection support", anchorName: "Amoonguss", dx: 24, dy: -34 },
-  { label: "Terrain utility", anchorName: "Rillaboom", dx: 24, dy: 32 },
-];
