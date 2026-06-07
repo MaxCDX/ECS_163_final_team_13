@@ -2,9 +2,10 @@ import { useMemo } from "react";
 import { formatSignedDelta, subsetAverages, subsetSummaryInterpretation } from "../utils/pokemonMetrics.js";
 import { formatNumber, formatPercent } from "../utils/pokemonFormatting.js";
 
+// Brushing is a focus/context interaction; this panel summarizes the subset instead of replacing single-Pokemon evidence.
 export default function BrushedSubsetSummary({ brushedPokemon, datasetPokemon, onClearBrush }) {
   const hasSelection = brushedPokemon.length > 0;
-  // This card summarizes the brushed subset; DetailPanel still explains one selected Pokémon.
+  // This card summarizes the brushed subset; DetailPanel still explains one selected Pokemon.
   const selectedAverage = useMemo(
     () => subsetAverages(hasSelection ? brushedPokemon : datasetPokemon),
     [brushedPokemon, datasetPokemon, hasSelection],

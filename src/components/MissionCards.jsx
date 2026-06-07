@@ -1,6 +1,7 @@
 import { EXPLORATION_MISSION_INSIGHTS, EXPLORATION_MISSIONS } from "../data/storyConfig.js";
 import { missionEvidence } from "../utils/pokemonFilters.js";
 
+// Missions turn open exploration into testable hypotheses after the guided story.
 export function ExplorationMissions({ activeMission, onMissionSelect }) {
   return (
     <div className="exploration-missions" aria-label="Guided exploration missions">
@@ -20,6 +21,7 @@ export function ExplorationMissions({ activeMission, onMissionSelect }) {
 }
 
 export function MissionInsightCard({ activeMission, pokemon }) {
+  // Mission results reuse existing rankings and metrics; they do not introduce new data.
   const insight = activeMission ? EXPLORATION_MISSION_INSIGHTS.get(activeMission) : null;
   if (!insight) return null;
   const evidence = missionEvidence(insight, pokemon);

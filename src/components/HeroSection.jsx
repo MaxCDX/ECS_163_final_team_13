@@ -1,6 +1,8 @@
 import { CASE_STUDIES, LOCAL_IMAGE_PATHS } from "../data/storyConfig.js";
 import { compactName, formatNumber, imageForPokemon, typeColor, typeLabel } from "../utils/pokemonFormatting.js";
 
+// Introduces the raw-stats assumption before users enter the analytical views.
+// The case-study roster gives visual anchors for the story that follows.
 function HeroRoster({ pokemon, imageLookup, onSelect }) {
   const featured = CASE_STUDIES.map((name) => pokemon.find((d) => d.Name === name)).filter(Boolean).slice(0, 6);
 

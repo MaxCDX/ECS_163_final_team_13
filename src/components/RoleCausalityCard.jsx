@@ -1,3 +1,5 @@
+// Turns move, ability, and team-role evidence into a short causal story.
+// This explains team fit instead of treating raw stats as the whole answer.
 const ROLE_CAUSALITY_EXPLANATIONS = new Map([
   [
     "Incineroar",
@@ -216,6 +218,7 @@ function compactEvidenceLabel(label = "", maxLength = 20) {
 }
 
 function fallbackRoleFlow({ selectedPokemon, abilities = [], moves = [], items = [], teammates = [] }) {
+  // Non-authored Pokemon still get an interpretable role flow from available evidence.
   if (!selectedPokemon) return null;
 
   const steps = [];

@@ -2,7 +2,8 @@ import * as d3 from "d3";
 import { CORRELATION_SCAN_SIGNALS } from "../data/storyConfig.js";
 import { usageValue } from "./pokemonFormatting.js";
 
-// Degree and weighted degree summarize each Pokémon's teammate footprint.
+// Usage, degree, weighted degree, and teammate footprint are derived signals for the thesis.
+// Degree and weighted degree summarize each Pokemon's teammate footprint.
 export function addNetworkMetrics(pokemon, edges) {
   const metrics = new Map(pokemon.map((d) => [d.Name, { degree: 0, weightedDegree: 0, maxTeammateLink: 0 }]));
 

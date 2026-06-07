@@ -1,5 +1,7 @@
 import * as d3 from "d3";
 
+// Compares two local teammate neighborhoods after the full network reveal.
+// Node size reflects usage; edge thickness reflects teammate co-usage strength.
 const TYPE_COLORS = new Map([
   ["Normal", "#a9a78f"],
   ["Fire", "#d85f3f"],
@@ -83,6 +85,7 @@ function usageValue(pokemon) {
 }
 
 function topTeammates(edges, name, pokemonByName, limit = 3) {
+  // Use strongest visible teammate links so pairwise comparison stays readable.
   if (!name) return [];
   const byName = new Map();
   edges
@@ -110,6 +113,7 @@ function topTeammates(edges, name, pokemonByName, limit = 3) {
 }
 
 function buildEgo(pokemon, edges, pokemonByName) {
+  // A compact ego network bridges the global graph and side-by-side local evidence.
   if (!pokemon) return { center: null, teammates: [] };
   return {
     center: pokemon,

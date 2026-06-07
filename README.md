@@ -1,14 +1,14 @@
-# What Really Makes a Pokémon Strong?
+# What Really Makes a Pokemon Strong?
 
 ECS 163 Final Project, Team 13
 
 ## Overview
 
-This project is a narrative data visualization about competitive Pokémon usage. The central research question is:
+This project is a narrative data visualization about competitive Pokemon usage. The central research question is:
 
 **Do raw base stats explain competitive success, or does team connectivity explain usage better?**
 
-The visualization tests the common assumption that stronger Pokémon should be used more often. It then shows a contradiction: some high-stat Pokémon have low usage, while Incineroar has moderate stats but very high competitive adoption. The main insight is that teammate connectivity and repeated team structure explain usage better than raw stat total alone.
+The visualization tests the common assumption that stronger Pokemon should be used more often. It then shows a contradiction: some high-stat Pokemon have low usage, while Incineroar has moderate stats but very high competitive adoption. The main insight is that teammate connectivity and repeated team structure explain usage better than raw stat total alone.
 
 The system uses a Martini Glass storytelling structure:
 
@@ -20,7 +20,7 @@ The system uses a Martini Glass storytelling structure:
 
 The committed processed dataset contains:
 
-- 1,098 Pokémon forms in the cleaned source table.
+- 1,098 Pokemon forms in the cleaned source table.
 - 2,606 teammate co-usage links.
 - 2,967 move, item, and ability build records.
 
@@ -34,24 +34,24 @@ src/
   App.jsx        Main visualization orchestration
 
 public/
-  data/processed/ Runtime CSV data
-  assets/pokemon/ Local Pokémon sprites
+  data/processed/ Runtime CSV data loaded by the app
+  assets/pokemon/ Local Pokemon sprites
 
-scripts/         Optional preprocessing utilities
+scripts/         Optional preprocessing utilities; may regenerate data/processed/
 ```
 
 The application follows a coordinated-view architecture. App.jsx manages shared state, D3 visualizations provide the primary analytical views, components contain reusable UI elements, data contains story configuration and loading logic, and utils contains metric, filtering, and network helper functions.
 
 ## Visualization System
 
-The application is organized as coordinated views. All major views share selected Pokémon state so that user actions in one view update the rest of the story.
+The application is organized as coordinated views. All major views share selected Pokemon state so that user actions in one view update the rest of the story.
 
 ### Scatterplot: Stats vs. Usage
 
 - D3 scatterplot showing the relationship between base stats and competitive usage.
-- Color encodes Pokémon type.
+- Color encodes Pokemon type.
 - Brushing selects a subset for focus.
-- Clicking selects a Pokémon for detailed evidence.
+- Clicking selects a Pokemon for detailed evidence.
 
 ### Signal Scan
 
@@ -67,10 +67,10 @@ The application is organized as coordinated views. All major views share selecte
 
 ### Ego Network Comparison
 
-- Compares the local teammate structures of two Pokémon.
+- Compares the local teammate structures of two Pokemon.
 - Summarizes usage, stats, connectivity, and teammate footprint.
 
-### Selected Pokémon Detail Panel
+### Selected Pokemon Detail Panel
 
 - Evidence view for moves, items, abilities, and teammates.
 - Role explanation view.
@@ -84,10 +84,10 @@ The application is organized as coordinated views. All major views share selecte
 ## Major Interactions
 
 - **Hover:** network nodes and team-core nodes provide compact contextual tooltips.
-- **Click selection:** scatterplot points, network nodes, hero cards, and picker results update the selected Pokémon.
+- **Click selection:** scatterplot points, network nodes, hero cards, and picker results update the selected Pokemon.
 - **Brushing:** scatterplot brushing creates a focused subset and highlights related network nodes.
 - **Linked highlighting:** selections and brushed subsets propagate across scatterplot, network, comparison, and detail views.
-- **Comparison selector:** first and second selected Pokémon can be changed independently.
+- **Comparison selector:** first and second selected Pokemon can be changed independently.
 - **Ranking mode switches:** picker can rank by usage, raw stats, or teammate footprint.
 - **Guided missions:** buttons jump to prepared exploration states that test the thesis.
 
@@ -129,9 +129,41 @@ These files are already included and are sufficient for a fresh-clone run:
 - `public/data/processed/build_usage_clean.csv`
 - `public/data/processed/image_lookup.csv`
 
-No preprocessing is required for grading. The committed processed files are sufficient to run the visualization from a fresh clone.
+No preprocessing is required. These small processed CSVs are included so you can run the visualization immediately.
 
-Optional preprocessing scripts are included under scripts/ for regenerating the processed datasets from the original raw sources.
+The original raw datasets are uploaded. The original datasets used during preprocessing were:
+
+- [Complete Competitive Pokemon Database (2022)](https://www.kaggle.com/datasets/giorgiocarbone/complete-competitive-pokmon-datasets-may-2022)
+- [Dataset of 32000 Pokemon Images](https://www.kaggle.com/datasets/divyanshusingh369/complete-pokemon-library-32k-images-and-csv)
+
+Optional preprocessing scripts are included under `scripts/`. To reproduce the processed CSVs from the original raw datasets, download and extract the raw datasets into:
+
+```text
+Complete_Competitive_Pokémon_Database_(2022)/
+Dataset_of_32000_Pokemon_Images/
+```
+
+The preprocessing scripts write regenerated outputs to:
+
+```text
+data/processed/
+```
+
+If you intentionally rerun preprocessing and want the app to use the regenerated files, copy the CSV outputs into the public runtime folder:
+
+```bash
+python3 scripts/preprocess_pokemon_data.py
+python3 scripts/validate_pokemon_outputs.py
+
+mkdir -p public/data/processed
+cp data/processed/*.csv public/data/processed/
+```
+
+Then run:
+
+```bash
+npm run dev
+```
 
 ## Running the Application
 
@@ -165,7 +197,7 @@ Open the local preview URL printed by Vite.
 
 ## Demo Walkthrough
 
-Use this sequence to reproduce the main story shown in the final report:
+Use this sequence to reproduce the main story we wrote in the final report:
 
 1. Explore the scatterplot.
 2. Select Incineroar.
@@ -174,7 +206,7 @@ Use this sequence to reproduce the main story shown in the final report:
 5. Compare Incineroar and Zacian.
 6. Open the Detail Panel tabs.
 7. Complete the guided missions.
-8. Use search and ranking modes to explore additional Pokémon.
+8. Use search and ranking modes to explore additional Pokemon.
 
 ## Reproducibility Notes
 
@@ -191,7 +223,7 @@ Common issues:
 - If the app does not start, run `npm install` again and then retry `npm run dev`.
 - If Vite reports that port `5173` is unavailable, use the alternate local URL printed in the terminal.
 - If charts appear empty, confirm that the CSV files exist under `public/data/processed/`.
-- If local Pokémon sprites do not appear, confirm that `public/assets/pokemon/` is present.
+- If local Pokemon sprites do not appear, confirm that `public/assets/pokemon/` is present.
 - If optional preprocessing fails, confirm that `pandas` is installed and the original source data folders are present.
 
 Copy-paste verification commands:

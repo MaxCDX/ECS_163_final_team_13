@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import * as d3 from "d3";
 
+// Small team-core graph for the detail stage after one Pokemon is selected.
+// It explains a local recurring team pattern without recreating the full network.
 const TYPE_COLORS = new Map([
   ["Normal", "#a9a78f"],
   ["Fire", "#d85f3f"],

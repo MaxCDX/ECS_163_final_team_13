@@ -1,5 +1,6 @@
 import { STORY_STEPS } from "../data/storyConfig.js";
 
+// Sticky navigation exposes the Martini Glass stages and keeps readers oriented while scrolling.
 export default function StoryNav({ activeStep, onStep }) {
   return (
     <nav className="story-stepper" aria-label="Guided story stages">

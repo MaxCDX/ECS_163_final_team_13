@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import * as d3 from "d3";
 import { DATA_PATHS } from "./storyConfig.js";
 
+// Runtime CSVs live under public/data/processed because Vite serves public files as static assets.
 function parsePokemon(row) {
-  // Normalize CSV rows into chart-ready Pokémon records with numeric stats and usage fields.
+  // Normalize CSV rows into chart-ready Pokemon records with numeric stats and usage fields.
   return {
     ...row,
     ID: +row.ID,

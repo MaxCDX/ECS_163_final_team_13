@@ -18,6 +18,7 @@ export default function PokemonPicker({
 }) {
   // Lets readers move from guided narrative into their own usage/stats/synergy exploration.
   const modeInfo = PICKER_MODES.find((item) => item.id === mode) || PICKER_MODES[0];
+  // Ranking modes show the same Pokemon through usage, raw stats, and teammate-footprint lenses.
   const options = useMemo(() => rankedPickerOptions(pokemon, query, mode), [mode, pokemon, query]);
   const currentFocus = useMemo(() => {
     if (!selectedPokemon) return null;

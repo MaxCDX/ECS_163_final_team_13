@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
-import EgoNetworkComparisonView from "./EgoNetworkComparisonView.jsx";
-import RoleCausalityCard from "./RoleCausalityCard.jsx";
-import TeamEcosystemPanel from "./TeamEcosystemPanel.jsx";
+import EgoNetworkComparisonView from "./components/EgoNetworkComparisonView.jsx";
+import RoleCausalityCard from "./components/RoleCausalityCard.jsx";
+import TeamEcosystemPanel from "./components/TeamEcosystemPanel.jsx";
 import BrushedSubsetSummary from "./components/BrushedSubsetSummary.jsx";
 import HeroSection from "./components/HeroSection.jsx";
 import { ExplorationMissions, MissionInsightCard } from "./components/MissionCards.jsx";
@@ -1269,7 +1269,7 @@ export default function App() {
 
   const handleSelectName = useCallback(
     (name, options = {}) => {
-      // Updates the selected Pokémon and keeps linked views aligned through the active comparison slot.
+      // Updates the selected Pokemon and keeps linked views aligned through the active comparison slot.
       const targetSlot = options.slot || activeComparisonSlot;
       const isInsideBrush = name && brushedNames.includes(name);
 
@@ -1304,7 +1304,7 @@ export default function App() {
       brushedKeyRef.current = nextKey;
       setBrushedNames(names);
       if (names.length) {
-        // Brush is subset focus; click remains single-Pokémon detail selection.
+        // Brush is subset focus; click remains single-Pokemon detail selection.
         setActiveStep("contradiction");
         if (!wasBrushing) {
           setNetworkFocusName(null);
@@ -1351,7 +1351,7 @@ export default function App() {
 
   const handleComparisonSlotChange = useCallback(
     (slot) => {
-      // The active slot controls whether future clicks edit the first or second Pokémon.
+      // The active slot controls whether future clicks edit the first or second Pokemon.
       setActiveComparisonSlot(slot);
       if (brushedNames.length) {
         setNetworkFocusName(null);

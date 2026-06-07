@@ -1,6 +1,7 @@
 import * as d3 from "d3";
 import { LOCAL_IMAGE_PATHS } from "../data/storyConfig.js";
 
+// Shared formatting keeps labels, percentages, names, and images consistent across coordinated views.
 export const TYPE_COLORS = new Map([
   ["Normal", "#a9a78f"],
   ["Fire", "#d85f3f"],

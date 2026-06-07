@@ -1,18 +1,6 @@
-*.pdf
 Complete_Competitive_Pokémon_Database_(2022)/
 /data/
 Dataset_of_32000_Pokemon_Images/
 node_modules/
 dist/
 .DS_Store
-
-
-# LaTeX
-*.aux
-*.bbl
-*.blg
-*.fdb_latexmk
-*.fls
-*.log
-*.out
-*.synctex.gz
