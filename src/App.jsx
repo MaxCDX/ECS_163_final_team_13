@@ -188,23 +188,28 @@ function ComparisonChart({ pokemon, selectedName, comparisonName, activeSlot, br
         .attr("y2", y(Math.max(0, trend.slope * xMax + trend.intercept)));
     }
 
-    if (selected) {
-      svg
-        .append("line")
-        .attr("class", "selection-guide")
-        .attr("x1", x(selected.Total))
-        .attr("x2", x(selected.Total))
-        .attr("y1", y(0))
-        .attr("y2", y(usageValue(selected)));
+    [
+      { pokemon: data.find((d) => d.Name === selectedName), slot: "first" },
+      { pokemon: data.find((d) => d.Name === comparisonName), slot: "second" },
+    ]
+      .filter((entry) => entry.pokemon)
+      .forEach(({ pokemon: selection, slot }) => {
+        svg
+          .append("line")
+          .attr("class", `selection-guide is-${slot}`)
+          .attr("x1", x(selection.Total))
+          .attr("x2", x(selection.Total))
+          .attr("y1", y(0))
+          .attr("y2", y(usageValue(selection)));
 
-      svg
-        .append("line")
-        .attr("class", "selection-guide")
-        .attr("x1", margin.left)
-        .attr("x2", x(selected.Total))
-        .attr("y1", y(usageValue(selected)))
-        .attr("y2", y(usageValue(selected)));
-    }
+        svg
+          .append("line")
+          .attr("class", `selection-guide is-${slot}`)
+          .attr("x1", margin.left)
+          .attr("x2", x(selection.Total))
+          .attr("y1", y(usageValue(selection)))
+          .attr("y2", y(usageValue(selection)));
+      });
 
     // Brush provides focus/context by selecting a subset for linked network highlighting.
     const brush = d3

@@ -2324,9 +2324,16 @@ p {
 
 .selection-guide {
   pointer-events: none;
-  stroke: rgba(226, 95, 77, 0.55);
   stroke-dasharray: 4 5;
   stroke-width: 1.5;
+}
+
+.selection-guide.is-first {
+  stroke: rgba(226, 95, 77, 0.68);
+}
+
+.selection-guide.is-second {
+  stroke: rgba(127, 179, 216, 0.76);
 }
 
 .regression-line {
